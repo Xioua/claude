@@ -25,3 +25,28 @@ Opskriftsapp til mobilen.
 ## Om link-import og oversættelse
 
 Browsere må ikke læse andre hjemmesider direkte, så siderne hentes gennem en offentlig CORS-proxy (allorigins, corsproxy.io eller codetabs; den næste prøves, hvis én fejler). Oversættelsen bruger Google Oversæt. Begge er gratis tjenester uden garanti, så hvis en side ikke kan hentes, kan du kopiere opskriftens tekst og bruge fanen *Tekst*.
+
+## Fælles kogebog med din kæreste (Firebase)
+
+Opskrifterne gemmes gratis i jeres eget Firebase-projekt hos Google. Det skal kun sættes op én gang, af den ene af jer. Det er nemmest på en computer.
+
+1. **Opret projekt:** Gå til https://console.firebase.google.com, log ind med din Google-konto, tryk *Create a project* (Opret projekt), kald det fx `vores-kogebog`. Google Analytics kan du slå fra.
+2. **Tilføj en web-app:** Tryk på *</>*-ikonet (Web) på projektets forside, giv den navnet `Kogebog`, og tryk *Register app*. Kopiér den blok, der starter med `const firebaseConfig = {`.
+3. **Opret databasen:** I menuen til venstre: *Build → Firestore Database → Create database*. Vælg placeringen `eur3 (europe-west)` og *Start in production mode*.
+4. **Sæt reglerne:** Gå til fanen *Rules* i Firestore, erstat alt med teksten herunder og tryk *Publish*:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /kogeboeger/{bog}/opskrifter/{id} {
+      allow read, write: if bog.matches('kb-[A-Za-z0-9_-]{20,}');
+    }
+  }
+}
+```
+
+5. **I appen:** Åbn Kogebog fra hjemmeskærmen, tryk på personikonet øverst, sæt `firebaseConfig`-blokken ind og tryk *Opret fælles kogebog*. Dine opskrifter bliver lagt op.
+6. **Inviter din kæreste:** Tryk *Inviter din kæreste* og send linket. Din kæreste åbner det i Safari, føjer appen til hjemmeskærmen, åbner appen, trykker på personikonet og sætter linket ind under *Har du fået et invitationslink?*.
+
+Kogebogen har en lang, tilfældig kode, som ligger i invitationslinket. Alle med linket kan se og ændre opskrifterne, så send det kun til dem, der skal være med. Firebases gratis plan rækker langt til to personer.
