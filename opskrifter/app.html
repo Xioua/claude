@@ -1,0 +1,779 @@
+<title>Min Kogebog</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: én kolonne, telefon først. Sticky topbar, kort-liste, opskriftsark med skaleringspanel. */
+:root {
+  --bg: #f3f5f1;
+  --surface: #ffffff;
+  --surface-2: #e8ece5;
+  --ink: #1b221e;
+  --ink-soft: #56615a;
+  --line: #d5dbd2;
+  --accent: #2c6a4b;       /* basilikum */
+  --accent-ink: #ffffff;
+  --accent-soft: #dcebe1;
+  --warm: #c2562f;         /* tomat, kun til tal der er skaleret */
+  --danger: #b3261e;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121714; --surface: #1a211d; --surface-2: #232c27; --ink: #e7ece8; --ink-soft: #9eaba3;
+    --line: #2f3a34; --accent: #6fc196; --accent-ink: #0c1a12; --accent-soft: #1f3a2b; --warm: #f08a62; --danger: #ff8a80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121714; --surface: #1a211d; --surface-2: #232c27; --ink: #e7ece8; --ink-soft: #9eaba3;
+  --line: #2f3a34; --accent: #6fc196; --accent-ink: #0c1a12; --accent-soft: #1f3a2b; --warm: #f08a62; --danger: #ff8a80;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); }
+body { color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; -webkit-text-size-adjust: 100%; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; text-wrap: balance; margin: 0; }
+button, input, textarea, select { font: inherit; color: inherit; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.wrap { max-width: 720px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+.topbar .wrap { display: flex; align-items: center; gap: 10px; padding-block: 10px; min-height: 56px; }
+.brand { font-family: var(--font-display); font-weight: 800; font-size: 1.3rem; letter-spacing: -0.01em; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand small { font-weight: 500; color: var(--ink-soft); font-size: .8rem; margin-left: 6px; letter-spacing: 0; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 9px 16px; font-weight: 600; cursor: pointer; text-decoration: none; color: var(--ink); min-height: 42px; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.ghost { background: transparent; border-color: transparent; }
+.btn.danger { color: var(--danger); }
+.btn.icon { width: 42px; padding: 0; }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn svg { width: 18px; height: 18px; flex: none; }
+
+main { padding-block: 16px 96px; }
+.stack { display: flex; flex-direction: column; gap: 16px; }
+
+/* Liste */
+.search { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 11px 18px; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-size: .9rem; font-weight: 500; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.cards { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 560px) { .cards { grid-template-columns: 1fr 1fr; } }
+.card { display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; text-align: left; cursor: pointer; width: 100%; }
+.card:hover { border-color: var(--accent); }
+.mono { width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 1.35rem; background: var(--accent-soft); color: var(--accent); }
+.card h3 { font-size: 1.05rem; font-weight: 700; }
+.card .meta { color: var(--ink-soft); font-size: .85rem; display: flex; gap: 10px; flex-wrap: wrap; }
+.card > div { min-width: 0; }
+.tag { display: inline-block; font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--warm); }
+.section-label { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.empty p { margin: 0; color: var(--ink-soft); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.fab { position: fixed; right: max(16px, calc(env(safe-area-inset-right, 0px) + 12px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); z-index: 6; display: flex; gap: 10px; }
+.fab .btn { box-shadow: 0 6px 20px rgb(0 0 0 / .18); min-height: 50px; padding: 0 20px; }
+
+/* Opskrift */
+.recipe-head { display: flex; flex-direction: column; gap: 8px; }
+.recipe-head h1 { font-size: clamp(1.8rem, 7vw, 2.6rem); font-weight: 800; letter-spacing: -0.02em; }
+.recipe-head p { margin: 0; color: var(--ink-soft); max-width: 62ch; }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .9rem; color: var(--ink-soft); }
+.facts b { color: var(--ink); font-weight: 600; }
+
+.scaler { background: var(--ink); color: var(--bg); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.scaler-main { display: flex; align-items: center; gap: 12px; }
+.scaler-main .lbl { flex: 1; min-width: 0; font-size: .9rem; opacity: .8; }
+.stepper { display: flex; align-items: center; gap: 4px; }
+.stepper button { width: 42px; height: 42px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--bg) 35%, transparent); background: transparent; color: var(--bg); font-size: 1.4rem; line-height: 1; cursor: pointer; }
+.stepper input { width: 64px; text-align: center; background: transparent; border: 0; color: var(--bg); font-family: var(--font-display); font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.scaler .chips .chip { background: transparent; color: var(--bg); border-color: color-mix(in srgb, var(--bg) 35%, transparent); }
+.scaler .chips .chip[aria-pressed="true"] { background: var(--bg); color: var(--ink); }
+.unitname { font-size: .95rem; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.panel h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; }
+.ings { list-style: none; margin: 0; padding: 0; }
+.ings li { display: grid; grid-template-columns: 26px minmax(70px, auto) 1fr; gap: 10px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.ings li:last-child { border-bottom: 0; }
+.ings li.sec { display: block; cursor: default; padding-top: 16px; border-bottom: 0; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
+.ings .qty { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+.ings .qty.scaled { color: var(--warm); }
+.ings .name { min-width: 0; }
+.box { width: 20px; height: 20px; border: 2px solid var(--line); border-radius: 6px; align-self: center; display: grid; place-items: center; }
+li.done .box, .steps li.done .num { background: var(--accent); border-color: var(--accent); }
+li.done .box::after { content: ""; width: 9px; height: 5px; border: 2px solid var(--accent-ink); border-top: 0; border-right: 0; transform: rotate(-45deg) translate(1px, -1px); }
+li.done .name, li.done .qty, .steps li.done .txt { opacity: .45; text-decoration: line-through; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.steps li { display: grid; grid-template-columns: 32px 1fr; gap: 12px; cursor: pointer; }
+.steps .num { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-weight: 700; font-size: .9rem; font-variant-numeric: tabular-nums; }
+.steps li.done .num { color: var(--accent-ink); }
+.steps .txt { padding-top: 4px; max-width: 65ch; }
+.notes { white-space: pre-wrap; margin: 0; color: var(--ink-soft); }
+
+/* Formularer */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-weight: 600; font-size: .9rem; }
+.field .hint { font-size: .8rem; color: var(--ink-soft); }
+.input, textarea.input { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 11px 12px; }
+textarea.input { min-height: 120px; resize: vertical; line-height: 1.45; }
+textarea.tall { min-height: 220px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid2 > * { min-width: 0; }
+.seg { display: flex; background: var(--surface-2); border-radius: 999px; padding: 4px; gap: 4px; }
+.seg button { flex: 1; border: 0; background: transparent; border-radius: 999px; padding: 8px 10px; font-weight: 600; cursor: pointer; color: var(--ink-soft); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
+.note { font-size: .88rem; color: var(--ink-soft); background: var(--surface-2); border-radius: 10px; padding: 10px 12px; margin: 0; }
+.note.err { color: var(--danger); }
+.preview-ing { font-size: .85rem; color: var(--ink-soft); margin: 0; padding-left: 18px; }
+.check { display: flex; gap: 8px; align-items: center; font-size: .9rem; }
+.confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 600; z-index: 20; font-size: .9rem; max-width: calc(100% - 32px); }
+.spin { width: 16px; height: 16px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: sp .8s linear infinite; }
+@keyframes sp { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s; } }
+.status { font-size: .8rem; color: var(--ink-soft); }
+</style>
+
+<header class="topbar">
+  <div class="wrap" id="topbar"></div>
+</header>
+<main class="wrap" id="main"></main>
+<div class="fab" id="fab"></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------- Små hjælpere ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const ICON = {
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  paste: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>',
+  sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
+};
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 2200);
+}
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+/* ---------- Enheder: ensretning og skalering ---------- */
+const UNIT_ALIASES = {
+  g: ["g", "gr", "gr.", "gram", "grams"], kg: ["kg", "kilo", "kilogram"],
+  ml: ["ml", "milliliter"], cl: ["cl", "centiliter"], dl: ["dl", "deciliter"], l: ["l", "liter", "litre", "liters"],
+  tsk: ["tsk", "tsk.", "teske", "teskefuld", "tsp", "tsp.", "teaspoon", "teaspoons", "tl"],
+  spsk: ["spsk", "spsk.", "spiseske", "spiseskefuld", "tbsp", "tbsp.", "tablespoon", "tablespoons", "tbs", "el"],
+  knsp: ["knsp", "knsp.", "knivspids", "pinch"],
+  stk: ["stk", "stk.", "styk", "stykker"], fed: ["fed", "clove", "cloves"],
+  dåse: ["dåse", "dåser", "ds", "ds.", "can", "cans"], pk: ["pk", "pk.", "pakke", "pakker", "pakning"],
+  bdt: ["bdt", "bdt.", "bundt", "bundter", "bunch"], skive: ["skive", "skiver", "slice", "slices"],
+  håndfuld: ["håndfuld", "håndfulde", "handful"], dråbe: ["dråbe", "dråber", "drop", "drops"],
+  /* Amerikanske mål omregnes ved indlæsning */
+  cup: ["cup", "cups", "c."], oz: ["oz", "ounce", "ounces"], lb: ["lb", "lbs", "pound", "pounds"], floz: ["fl oz", "fl. oz", "fl.oz"]
+};
+const UNIT_LOOKUP = {};
+for (const [k, list] of Object.entries(UNIT_ALIASES)) for (const a of list) UNIT_LOOKUP[a.toLowerCase()] = k;
+const US_TO_METRIC = { cup: [2.4, "dl"], oz: [28, "g"], lb: [450, "g"], floz: [30, "ml"] };
+
+const VULGAR = { "½": .5, "⅓": 1/3, "⅔": 2/3, "¼": .25, "¾": .75, "⅕": .2, "⅛": .125, "⅜": .375, "⅝": .625, "⅞": .875 };
+const NUM_RE = "(?:\\d+(?:[.,]\\d+)?(?:\\s+\\d+\\/\\d+|\\s*[½⅓⅔¼¾⅕⅛⅜⅝⅞])?|\\d+\\/\\d+|[½⅓⅔¼¾⅕⅛⅜⅝⅞])";
+function parseNum(s) {
+  s = s.trim();
+  let m;
+  if ((m = s.match(/^(\d+)\s+(\d+)\/(\d+)$/))) return +m[1] + m[2] / m[3];
+  if ((m = s.match(/^(\d+)\/(\d+)$/))) return m[1] / m[2];
+  if ((m = s.match(/^(\d+(?:[.,]\d+)?)\s*([½⅓⅔¼¾⅕⅛⅜⅝⅞])$/))) return parseFloat(m[1].replace(",", ".")) + VULGAR[m[2]];
+  if (VULGAR[s] != null) return VULGAR[s];
+  const n = parseFloat(s.replace(",", "."));
+  return isNaN(n) ? null : n;
+}
+/* "2-3 spsk olivenolie" -> {amount:2, amountMax:3, unit:"spsk", name:"olivenolie"} */
+function parseIngredientLine(line) {
+  let s = line.replace(/^\s*[-•*·–]\s*/, "").replace(/\s+/g, " ").trim();
+  if (!s) return null;
+  if (/:$/.test(s) && s.length < 60) return { section: s.replace(/:$/, "").trim() };
+  const re = new RegExp("^(" + NUM_RE + ")(?:\\s*[-–]\\s*(" + NUM_RE + "))?\\s*(.*)$");
+  const m = s.match(re);
+  let amount = null, amountMax = null, rest = s, unit = "";
+  if (m) {
+    amount = parseNum(m[1]);
+    amountMax = m[2] ? parseNum(m[2]) : null;
+    rest = m[3];
+  }
+  if (amount != null) {
+    const low = rest.toLowerCase();
+    if (low.startsWith("fl oz") || low.startsWith("fl. oz") || low.startsWith("fl.oz")) {
+      unit = "floz"; rest = rest.replace(/^fl\.?\s?oz\.?\s*/i, "");
+    } else {
+      const w = rest.match(/^([^\s]+)\s*(.*)$/);
+      if (w && UNIT_LOOKUP[w[1].toLowerCase()]) { unit = UNIT_LOOKUP[w[1].toLowerCase()]; rest = w[2]; }
+      else if (w && UNIT_LOOKUP[w[1].toLowerCase().replace(/\.$/, "")]) { unit = UNIT_LOOKUP[w[1].toLowerCase().replace(/\.$/, "")]; rest = w[2]; }
+    }
+  }
+  return normalizeIngredient({ amount, amountMax, unit, name: rest.replace(/^(of|af)\s+/i, "").trim() });
+}
+/* Fælles mål: amerikanske mål til metrisk, tsk/spsk/dl osv. bevares */
+function normalizeIngredient(ing) {
+  if (ing.section) return { section: String(ing.section) };
+  let amount = toNum(ing.amount), amountMax = toNum(ing.amountMax);
+  let unit = String(ing.unit || "").trim();
+  const canon = UNIT_LOOKUP[unit.toLowerCase()] || unit;
+  unit = canon;
+  if (US_TO_METRIC[unit] && amount != null) {
+    const [f, u] = US_TO_METRIC[unit];
+    amount = amount * f; if (amountMax != null) amountMax *= f; unit = u;
+  }
+  return { amount, amountMax, unit, name: String(ing.name || "").trim() };
+}
+function toNum(v) { if (v == null || v === "") return null; const n = typeof v === "number" ? v : parseNum(String(v)); return n == null || isNaN(n) ? null : n; }
+
+/* Vælg den mest læsbare enhed efter skalering */
+function bestUnit(q, unit) {
+  if (unit === "g" && q >= 1000) return [q / 1000, "kg"];
+  if (unit === "kg" && q < 1) return [q * 1000, "g"];
+  if (unit === "ml" && q >= 100) return [q / 100, "dl"];
+  if (unit === "cl" && q >= 10) return [q / 10, "dl"];
+  if (unit === "dl" && q >= 10) return [q / 10, "l"];
+  if (unit === "dl" && q < 0.5) return [q * 100, "ml"];
+  if (unit === "l" && q < 1) return [q * 10, "dl"];
+  if (unit === "tsk" && q >= 6) return [q / 3, "spsk"];
+  if (unit === "spsk" && q < 1 && q > 0) return [q * 3, "tsk"];
+  return [q, unit];
+}
+const FRACS = [[0, ""], [1/4, "¼"], [1/3, "⅓"], [1/2, "½"], [2/3, "⅔"], [3/4, "¾"], [1, ""]];
+function fmtNum(q, unit) {
+  if (q == null) return "";
+  const comma = (x, d) => x.toFixed(d).replace(/\.?0+$/, "").replace(".", ",");
+  if (unit === "g" || unit === "ml") {
+    if (q >= 100) return String(Math.round(q / 5) * 5);
+    if (q >= 10) return String(Math.round(q));
+    return comma(q, 1);
+  }
+  if (unit === "kg" || unit === "l") return comma(q, 2);
+  if (q >= 10) return String(Math.round(q));
+  const whole = Math.floor(q), frac = q - whole;
+  let best = FRACS[0], diff = 1;
+  for (const f of FRACS) { const d = Math.abs(frac - f[0]); if (d < diff) { diff = d; best = f; } }
+  if (diff <= 0.05) {
+    const w = best[0] === 1 ? whole + 1 : whole;
+    if (!best[1]) return String(w);
+    return (w ? w : "") + best[1];
+  }
+  return comma(q, 1);
+}
+function fmtQty(ing, factor) {
+  if (ing.amount == null) return "";
+  let a = ing.amount * factor, b = ing.amountMax != null ? ing.amountMax * factor : null;
+  const [qa, u] = bestUnit(a, ing.unit);
+  const qb = b != null && a ? b * (qa / a) : null;
+  const ua = u ? " " + u : "";
+  return fmtNum(qa, u) + (qb != null ? "–" + fmtNum(qb, u) : "") + ua;
+}
+function ingToLine(ing) {
+  if (ing.section) return ing.section + ":";
+  return [fmtQty(ing, 1), ing.name].filter(Boolean).join(" ");
+}
+
+/* Tekst -> trin: fjern nummerering, del på tomme linjer eller linjeskift */
+function parseSteps(text) {
+  const raw = String(text || "").replace(/\r/g, "");
+  let parts = raw.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
+  if (parts.length <= 1) parts = raw.split(/\n/).map((s) => s.trim()).filter(Boolean);
+  return parts.map((s) => s.replace(/^(?:trin\s*)?\d+[.):]\s*/i, "").replace(/\s*\n\s*/g, " ").trim()).filter(Boolean);
+}
+
+/* Simpel lokal fortolkning af indsat tekst (bruges når Claude ikke er tilgængelig) */
+function heuristicParse(text) {
+  const lines = String(text).replace(/\r/g, "").split("\n").map((l) => l.trim());
+  const isIngHead = (l) => /^(ingredienser|ingredients|du skal bruge|det skal du bruge)\b/i.test(l);
+  const isStepHead = (l) => /^(fremgangsmåde|sådan gør du|tilberedning|instructions|method|directions|preparation|opskrift)\b/i.test(l);
+  const isNoteHead = (l) => /^(tips?|noter|bemærk|notes?)\b/i.test(l);
+  let title = lines.find((l) => l && !isIngHead(l) && !isStepHead(l) && l.length < 90) || "Ny opskrift";
+  let servings = 4, unit = "personer";
+  const sm = text.match(/(\d+)\s*(personer|pers\.?|portioner|servings|serves|people|stk\.?|styk)/i) || text.match(/(?:serves|til|portioner:?)\s*(\d+)/i);
+  if (sm) { servings = +sm[1]; if (sm[2] && /stk|styk/i.test(sm[2])) unit = "stk."; else if (sm[2] && /portion/i.test(sm[2])) unit = "portioner"; }
+  let mode = "", ings = [], steps = [], notes = [];
+  for (const l of lines) {
+    if (!l) { if (mode === "steps") steps.push(""); continue; }
+    if (isIngHead(l)) { mode = "ings"; continue; }
+    if (isStepHead(l)) { mode = "steps"; continue; }
+    if (isNoteHead(l)) { mode = "notes"; continue; }
+    if (mode === "ings") ings.push(l);
+    else if (mode === "steps") steps.push(l);
+    else if (mode === "notes") notes.push(l);
+  }
+  if (!ings.length) ings = lines.filter((l) => new RegExp("^" + NUM_RE).test(l) && l.length < 80);
+  return {
+    title, servings, servingsUnit: unit, time: "", category: "", description: "",
+    ingredients: ings.map(parseIngredientLine).filter(Boolean),
+    steps: parseSteps(steps.join("\n")), notes: notes.join("\n")
+  };
+}
+
+/* ---------- Eksempler (vises kun når kogebogen er tom) ---------- */
+const EXAMPLES = [
+  { id: "eksempel-boller", example: true, title: "Grovboller med havregryn", description: "Bløde morgenboller, der kan hæve natten over i køleskabet.", servings: 12, servingsUnit: "stk.", time: "30 min + hævning", category: "Brød", source: "",
+    ingredients: [
+      { amount: 5, amountMax: null, unit: "dl", name: "lunkent vand" }, { amount: 25, amountMax: null, unit: "g", name: "gær" },
+      { amount: 1, amountMax: null, unit: "spsk", name: "honning" }, { amount: 2, amountMax: null, unit: "tsk", name: "salt" },
+      { amount: 1, amountMax: null, unit: "dl", name: "havregryn" }, { amount: 200, amountMax: null, unit: "g", name: "grahamsmel" },
+      { amount: 450, amountMax: 500, unit: "g", name: "hvedemel" }, { section: "Pynt" }, { amount: 1, amountMax: null, unit: "stk", name: "æg til pensling" }],
+    steps: ["Rør gæren ud i vandet med honning og salt.", "Tilsæt havregryn og grahamsmel, og ælt hvedemelet i lidt ad gangen til dejen slipper skålen.", "Lad dejen hæve tildækket i 1 time, eller i køleskabet natten over.", "Form boller, læg dem på en plade med bagepapir og lad dem efterhæve i 20 minutter.", "Pensl med æg og bag ved 225 °C i 12–15 minutter."],
+    notes: "Bollerne kan fryses og lunes i ovnen." },
+  { id: "eksempel-suppe", example: true, title: "Tomatsuppe med basilikum", description: "Hurtig hverdagssuppe af dåsetomater.", servings: 4, servingsUnit: "personer", time: "35 min", category: "Aftensmad", source: "",
+    ingredients: [
+      { amount: 2, amountMax: null, unit: "spsk", name: "olivenolie" }, { amount: 1, amountMax: null, unit: "stk", name: "løg, hakket" },
+      { amount: 2, amountMax: null, unit: "fed", name: "hvidløg" }, { amount: 2, amountMax: null, unit: "dåse", name: "hakkede tomater" },
+      { amount: 5, amountMax: null, unit: "dl", name: "grøntsagsbouillon" }, { amount: 1, amountMax: null, unit: "dl", name: "fløde" },
+      { amount: null, amountMax: null, unit: "", name: "salt og peber" }, { amount: 1, amountMax: null, unit: "bdt", name: "frisk basilikum" }],
+    steps: ["Svits løg og hvidløg i olien til de er bløde.", "Tilsæt tomater og bouillon, og lad suppen simre i 20 minutter.", "Blend suppen med fløde og det meste af basilikummen.", "Smag til med salt og peber, og server med resten af basilikummen på toppen."],
+    notes: "" }
+];
+
+/* ---------- Lagring: privat db på kontoen, ellers lokalt på enheden ---------- */
+const S = {
+  mode: "loading",       // "db" | "local" | "loading"
+  recipes: [],
+  col: null,
+  sample: null,
+  sampleImages: false,
+  filter: "Alle",
+  query: "",
+  servingsById: lsGet("mk:servings", {}),
+  checks: {},            // { [id]: {i: Set, s: Set} } kun i denne visning
+  wakeLock: null,
+  slow: false,
+  draft: null            // forudfyldt opskrift fra import
+};
+const sortRecipes = (a) => a.sort((x, y) => (y.updatedAt || 0) - (x.updatedAt || 0));
+
+function useLocal() {
+  S.mode = "local";
+  S.recipes = sortRecipes(lsGet("mk:recipes", []));
+  render();
+}
+async function initStore() {
+  if (!window.claude || typeof window.claude.use !== "function") return useLocal();
+  const slowTimer = setTimeout(() => { S.slow = true; render(); }, 10000);
+  try {
+    const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+    const id = user ? await user.id() : null;
+    if (!db || !id) { clearTimeout(slowTimer); return useLocal(); }
+    S.col = db.collection("data/users/" + id);
+    S.col.onSnapshot((snap) => {
+      if (!snap.metadata.fromCache) { clearTimeout(slowTimer); S.slow = false; }
+      S.mode = "db";
+      S.recipes = sortRecipes(snap.docs.map((d) => ({ ...d.data(), id: d.id })));
+      render();
+    }, (e) => {
+      clearTimeout(slowTimer);
+      S.slow = false;
+      if (S.mode !== "db") useLocal(); else { toast("Forbindelsen til kogebogen blev afbrudt"); }
+    });
+  } catch { clearTimeout(slowTimer); useLocal(); }
+}
+async function saveRecipe(r) {
+  r.updatedAt = Date.now();
+  if (!r.createdAt) r.createdAt = r.updatedAt;
+  const clean = JSON.parse(JSON.stringify(r)); delete clean.example;
+  if (S.mode === "db") {
+    try { await S.col.doc(clean.id).set(clean); }
+    catch (e) {
+      if (e && e.code === "quota_exceeded") { toast("Kogebogen er fuld. Slet en opskrift og prøv igen."); return false; }
+      try { await new Promise((r) => setTimeout(r, 600 + Math.random() * 600)); await S.col.doc(clean.id).set(clean); }
+      catch { toast("Opskriften kunne ikke gemmes. Prøv igen om lidt."); return false; }
+    }
+  } else {
+    const list = S.recipes.filter((x) => x.id !== clean.id); list.unshift(clean);
+    S.recipes = sortRecipes(list); lsSet("mk:recipes", S.recipes);
+  }
+  return true;
+}
+async function deleteRecipe(id) {
+  if (S.mode === "db") { try { await S.col.doc(id).delete(); } catch { toast("Kunne ikke slette. Prøv igen."); return false; } }
+  else { S.recipes = S.recipes.filter((x) => x.id !== id); lsSet("mk:recipes", S.recipes); }
+  return true;
+}
+async function initSample() {
+  if (!window.claude || typeof window.claude.use !== "function") return;
+  try {
+    const s = await claude.use("sample");
+    if (!s) return;
+    S.sample = s;
+    try { const lim = await s.limits(); S.sampleImages = !!(lim && lim.images); } catch {}
+    render();
+  } catch {}
+}
+
+/* ---------- Routing (#ny, #importer, #opskrift-id, #rediger-id) ---------- */
+function route() {
+  const h = location.hash.replace(/^#/, "");
+  if (h === "ny") return { view: "edit", id: null };
+  if (h === "importer") return { view: "import" };
+  if (h.startsWith("opskrift-")) return { view: "recipe", id: h.slice(9) };
+  if (h.startsWith("rediger-")) return { view: "edit", id: h.slice(8) };
+  return { view: "list" };
+}
+const go = (h) => { if (location.hash === "#" + h || (!h && !location.hash)) render(); else location.hash = h; };
+window.addEventListener("hashchange", () => { releaseWake(); render(); window.scrollTo(0, 0); });
+const visibleRecipes = () => (S.recipes.length ? S.recipes : (S.mode === "loading" ? [] : EXAMPLES));
+const findRecipe = (id) => S.recipes.find((r) => r.id === id) || EXAMPLES.find((r) => r.id === id);
+
+/* ---------- Visninger ---------- */
+function render() {
+  const r = route();
+  if (r.view === "recipe") return renderRecipe(r.id);
+  if (r.view === "edit") return renderEdit(r.id);
+  if (r.view === "import") return renderImport();
+  return renderList();
+}
+function setTop(html) { $("#topbar").innerHTML = html; }
+function setFab(html) { $("#fab").innerHTML = html; }
+function backBtn(to) { return `<a class="btn icon ghost" href="#${to || ""}" aria-label="Tilbage">${ICON.back}</a>`; }
+
+function storageLine() {
+  if (S.mode === "loading") return S.slow ? "Kogebogen svarer ikke endnu. Tjek din forbindelse." : "Henter dine opskrifter…";
+  if (S.mode === "db") return "Gemt på din konto, så du kan se dem på alle dine enheder.";
+  return "Gemt på denne enhed.";
+}
+
+function renderList() {
+  setTop(`<div class="brand">Min Kogebog</div>`);
+  const all = visibleRecipes();
+  const showingExamples = !S.recipes.length && S.mode !== "loading";
+  const cats = ["Alle", ...new Set(all.map((r) => r.category).filter(Boolean))];
+  if (!cats.includes(S.filter)) S.filter = "Alle";
+  const q = S.query.trim().toLowerCase();
+  const list = all.filter((r) => (S.filter === "Alle" || r.category === S.filter) &&
+    (!q || r.title.toLowerCase().includes(q) || (r.ingredients || []).some((i) => (i.name || "").toLowerCase().includes(q))));
+  $("#main").innerHTML = `
+    <div class="stack">
+      <input class="search" id="q" type="search" placeholder="Søg i opskrifter eller ingredienser" value="${esc(S.query)}" aria-label="Søg">
+      ${cats.length > 2 ? `<div class="chips" role="group" aria-label="Kategorier">${cats.map((c) => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${c === S.filter}">${esc(c)}</button>`).join("")}</div>` : ""}
+      ${showingExamples ? `<div class="empty">
+          <h2 style="font-size:1.25rem">Din kogebog er tom</h2>
+          <p>Indsæt en opskrift, du har kopieret fra en hjemmeside, eller skriv din egen. Alle opskrifter får samme opsætning og kan skaleres til det antal, du laver mad til. Herunder er to eksempler, så du kan se, hvordan det ser ud.</p>
+          <div class="row"><a class="btn primary" href="#importer">${ICON.paste} Indsæt fra nettet</a><a class="btn" href="#ny">${ICON.plus} Skriv selv</a></div>
+        </div>` : ""}
+      ${S.mode === "loading" ? `<p class="status">${esc(storageLine())}</p>` : ""}
+      <div class="cards">${list.map(cardHtml).join("") || (all.length ? `<p class="status">Ingen opskrifter matcher søgningen.</p>` : "")}</div>
+      ${S.mode !== "loading" ? `<p class="status">${esc(storageLine())}</p>` : ""}
+    </div>`;
+  const qi = $("#q");
+  qi.addEventListener("input", () => { S.query = qi.value; const pos = qi.selectionStart; renderList(); const n = $("#q"); n.focus(); try { n.setSelectionRange(pos, pos); } catch {} });
+  $("#main").querySelectorAll("[data-cat]").forEach((b) => b.addEventListener("click", () => { S.filter = b.dataset.cat; renderList(); }));
+  $("#main").querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => go("opskrift-" + b.dataset.open)));
+  setFab(showingExamples ? "" : `<a class="btn" href="#importer">${ICON.paste} Indsæt</a><a class="btn primary" href="#ny">${ICON.plus} Ny</a>`);
+}
+function cardHtml(r) {
+  const letter = (r.title || "?").trim().charAt(0).toUpperCase();
+  return `<button class="card" data-open="${esc(r.id)}">
+    <span class="mono" aria-hidden="true">${esc(letter)}</span>
+    <div>
+      ${r.example ? `<span class="tag">Eksempel</span>` : ""}
+      <h3>${esc(r.title)}</h3>
+      <div class="meta">${[r.category, r.time, r.servings ? r.servings + " " + (r.servingsUnit || "personer") : ""].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("")}</div>
+    </div>
+  </button>`;
+}
+
+function renderRecipe(id) {
+  const r = findRecipe(id);
+  if (!r) {
+    setTop(`${backBtn()}<div class="brand">Min Kogebog</div>`); setFab("");
+    $("#main").innerHTML = `<p class="status">${S.mode === "loading" ? "Henter opskriften…" : "Opskriften findes ikke længere."}</p>`;
+    return;
+  }
+  const base = Number(r.servings) || 1;
+  const cur = Number(S.servingsById[r.id]) || base;
+  const factor = cur / base;
+  const chk = S.checks[r.id] || (S.checks[r.id] = { i: new Set(), s: new Set() });
+  const unitName = r.servingsUnit || "personer";
+  setTop(`${backBtn()}<div class="brand">${esc(r.title)}</div>
+    <button class="btn icon ghost" id="wake" aria-label="Hold skærmen tændt" title="Hold skærmen tændt" aria-pressed="${!!S.wakeLock}">${ICON.sun}</button>`);
+  setFab("");
+  const presets = [0.5, 1, 2, 3].map((f) => Math.max(1, Math.round(base * f)));
+  $("#main").innerHTML = `
+    <div class="stack">
+      <div class="recipe-head">
+        ${r.example ? `<span class="tag">Eksempel</span>` : (r.category ? `<span class="section-label">${esc(r.category)}</span>` : "")}
+        <h1>${esc(r.title)}</h1>
+        ${r.description ? `<p>${esc(r.description)}</p>` : ""}
+        <div class="facts">
+          ${r.time ? `<span>Tid <b>${esc(r.time)}</b></span>` : ""}
+          <span>Opskriften er til <b>${esc(base)} ${esc(unitName)}</b></span>
+          ${r.source ? `<span><a href="${esc(r.source)}" target="_blank" rel="noopener">Kilde</a></span>` : ""}
+        </div>
+      </div>
+
+      <section class="scaler" aria-label="Skalér opskriften">
+        <div class="scaler-main">
+          <span class="lbl">Laver til</span>
+          <div class="stepper">
+            <button id="minus" aria-label="Færre">−</button>
+            <input id="serv" type="number" inputmode="numeric" min="1" max="500" value="${cur}" aria-label="Antal">
+            <button id="plus" aria-label="Flere">+</button>
+          </div>
+          <span class="unitname">${esc(unitName)}</span>
+        </div>
+        <div class="chips">${[...new Set(presets)].map((p) => `<button class="chip" data-serv="${p}" aria-pressed="${p === cur}">${p} ${esc(unitName)}${p === base ? " (original)" : ""}</button>`).join("")}</div>
+      </section>
+
+      <section class="panel">
+        <h2>Ingredienser</h2>
+        <ul class="ings">
+          ${(r.ingredients || []).map((ing, i) => ing.section
+            ? `<li class="sec">${esc(ing.section)}</li>`
+            : `<li data-ing="${i}" class="${chk.i.has(i) ? "done" : ""}"><span class="box" aria-hidden="true"></span><span class="qty ${factor !== 1 && ing.amount != null ? "scaled" : ""}">${esc(fmtQty(ing, factor))}</span><span class="name">${esc(ing.name)}</span></li>`).join("")}
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>Fremgangsmåde</h2>
+        <ol class="steps">
+          ${(r.steps || []).map((s, i) => `<li data-step="${i}" class="${chk.s.has(i) ? "done" : ""}"><span class="num">${i + 1}</span><span class="txt">${esc(s)}</span></li>`).join("")}
+        </ol>
+      </section>
+
+      ${r.notes ? `<section class="panel"><h2>Noter</h2><p class="notes">${esc(r.notes)}</p></section>` : ""}
+
+      <div class="row">
+        ${r.example
+          ? `<button class="btn primary" id="keep">${ICON.plus} Gem i min kogebog</button>`
+          : `<a class="btn" href="#rediger-${esc(r.id)}">${ICON.edit} Rediger</a>`}
+        <button class="btn" id="copy">${ICON.copy} Kopiér som tekst</button>
+        ${r.example ? "" : `<button class="btn danger" id="del">Slet</button>`}
+      </div>
+      <div id="confirm"></div>
+    </div>`;
+
+  const setServ = (n) => {
+    n = Math.max(1, Math.min(500, Math.round(Number(n) || base)));
+    S.servingsById[r.id] = n; lsSet("mk:servings", S.servingsById); renderRecipe(id);
+  };
+  $("#minus").onclick = () => setServ(cur - 1);
+  $("#plus").onclick = () => setServ(cur + 1);
+  $("#serv").addEventListener("change", (e) => setServ(e.target.value));
+  $("#main").querySelectorAll("[data-serv]").forEach((b) => (b.onclick = () => setServ(b.dataset.serv)));
+  $("#main").querySelectorAll("[data-ing]").forEach((li) => (li.onclick = () => { const i = +li.dataset.ing; chk.i.has(i) ? chk.i.delete(i) : chk.i.add(i); li.classList.toggle("done"); }));
+  $("#main").querySelectorAll("[data-step]").forEach((li) => (li.onclick = () => { const i = +li.dataset.step; chk.s.has(i) ? chk.s.delete(i) : chk.s.add(i); li.classList.toggle("done"); }));
+  $("#copy").onclick = () => {
+    const text = recipeAsText(r, factor, cur);
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast("Kopieret"), () => showCopyFallback(text));
+    else showCopyFallback(text);
+  };
+  $("#wake").onclick = toggleWake;
+  if ($("#keep")) $("#keep").onclick = async () => {
+    const copy = JSON.parse(JSON.stringify(r)); copy.id = uid(); delete copy.example;
+    if (await saveRecipe(copy)) { toast("Gemt i din kogebog"); go("opskrift-" + copy.id); }
+  };
+  if ($("#del")) $("#del").onclick = () => {
+    $("#confirm").innerHTML = `<div class="confirm"><span>Slet «${esc(r.title)}» for altid?</span><button class="btn danger" id="yes">Slet</button><button class="btn ghost" id="no">Annullér</button></div>`;
+    $("#no").onclick = () => ($("#confirm").innerHTML = "");
+    $("#yes").onclick = async () => { if (await deleteRecipe(r.id)) { toast("Opskriften er slettet"); go(""); } };
+  };
+}
+function showCopyFallback(text) {
+  $("#confirm").innerHTML = `<div class="field"><label for="cpy">Markér og kopiér teksten</label><textarea class="input tall" id="cpy" readonly>${esc(text)}</textarea></div>`;
+  const t = $("#cpy"); t.focus(); t.select();
+}
+function recipeAsText(r, factor, cur) {
+  const out = [r.title, "", `Til ${cur} ${r.servingsUnit || "personer"}`, "", "Ingredienser:"];
+  for (const ing of r.ingredients || []) out.push(ing.section ? "\n" + ing.section + ":" : "- " + [fmtQty(ing, factor), ing.name].filter(Boolean).join(" "));
+  out.push("", "Fremgangsmåde:");
+  (r.steps || []).forEach((s, i) => out.push(`${i + 1}. ${s}`));
+  if (r.notes) out.push("", "Noter:", r.notes);
+  return out.join("\n");
+}
+async function toggleWake() {
+  if (S.wakeLock) { releaseWake(); render(); return; }
+  try { S.wakeLock = await navigator.wakeLock.request("screen"); S.wakeLock.addEventListener("release", () => { S.wakeLock = null; }); toast("Skærmen holdes tændt"); }
+  catch { toast("Din enhed tillader ikke at holde skærmen tændt her"); }
+  render();
+}
+function releaseWake() { if (S.wakeLock) { try { S.wakeLock.release(); } catch {} S.wakeLock = null; } }
+
+/* ---------- Redigering ---------- */
+function renderEdit(id) {
+  const existing = id ? findRecipe(id) : null;
+  const r = existing || S.draft || { title: "", description: "", servings: 4, servingsUnit: "personer", time: "", category: "", source: "", ingredients: [], steps: [], notes: "" };
+  const isDraft = !existing && !!S.draft;
+  setTop(`${backBtn(existing ? "opskrift-" + existing.id : (isDraft ? "importer" : ""))}<div class="brand">${existing ? "Rediger opskrift" : (isDraft ? "Tjek opskriften" : "Ny opskrift")}</div>`);
+  setFab("");
+  const cats = [...new Set(S.recipes.map((x) => x.category).filter(Boolean))];
+  $("#main").innerHTML = `
+    <form class="stack" id="f" novalidate>
+      ${isDraft ? `<p class="note">Opskriften er sat ind i det faste format. Ret det, der ikke passer, og tryk Gem.</p>` : ""}
+      <div class="field"><label for="t">Titel</label><input class="input" id="t" required value="${esc(r.title)}" placeholder="Fx Mormors frikadeller"></div>
+      <div class="field"><label for="d">Kort beskrivelse</label><input class="input" id="d" value="${esc(r.description)}" placeholder="Valgfri"></div>
+      <div class="grid2">
+        <div class="field"><label for="sv">Opskriften er til</label><input class="input" id="sv" type="number" inputmode="numeric" min="1" value="${esc(r.servings || 4)}"></div>
+        <div class="field"><label for="su">Enhed</label><input class="input" id="su" list="units" value="${esc(r.servingsUnit || "personer")}"></div>
+      </div>
+      <datalist id="units"><option value="personer"><option value="portioner"><option value="stk."><option value="boller"><option value="kager"></datalist>
+      <div class="grid2">
+        <div class="field"><label for="tm">Tid</label><input class="input" id="tm" value="${esc(r.time)}" placeholder="Fx 45 min"></div>
+        <div class="field"><label for="ct">Kategori</label><input class="input" id="ct" list="cats" value="${esc(r.category)}" placeholder="Fx Aftensmad"></div>
+      </div>
+      <datalist id="cats">${[...new Set([...cats, "Aftensmad", "Brød", "Kage", "Dessert", "Morgenmad", "Tilbehør", "Suppe"])].map((c) => `<option value="${esc(c)}">`).join("")}</datalist>
+      <div class="field">
+        <label for="ig">Ingredienser</label>
+        <span class="hint">Én ingrediens pr. linje, mængde først: «2 dl mælk», «1½ spsk sukker». En linje der slutter med kolon bliver en overskrift, fx «Dej:». Amerikanske mål (cups, oz) omregnes automatisk.</span>
+        <textarea class="input tall" id="ig" placeholder="500 g hakket svinekød&#10;1 stk løg&#10;2 dl mælk">${esc((r.ingredients || []).map(ingToLine).join("\n"))}</textarea>
+        <ul class="preview-ing" id="igp" aria-live="polite"></ul>
+      </div>
+      <div class="field">
+        <label for="st">Fremgangsmåde</label>
+        <span class="hint">Ét trin pr. linje. Nummerering fjernes og sættes på igen automatisk.</span>
+        <textarea class="input tall" id="st">${esc((r.steps || []).join("\n\n"))}</textarea>
+      </div>
+      <div class="field"><label for="nt">Noter</label><textarea class="input" id="nt" placeholder="Tips, variationer, hvad der skal købes ind">${esc(r.notes)}</textarea></div>
+      <div class="field"><label for="src">Link til kilden</label><input class="input" id="src" type="url" inputmode="url" value="${esc(r.source)}" placeholder="https://"></div>
+      <p class="note err" id="err" hidden></p>
+      <div class="row"><button class="btn primary" type="submit" id="save">Gem opskrift</button><a class="btn ghost" href="#${existing ? "opskrift-" + existing.id : ""}">Annullér</a></div>
+    </form>`;
+  const ig = $("#ig"), igp = $("#igp");
+  const preview = () => {
+    const parsed = ig.value.split("\n").map(parseIngredientLine).filter(Boolean);
+    const odd = parsed.filter((p) => !p.section && p.amount == null).length;
+    igp.innerHTML = parsed.length ? `<li>${parsed.filter((p) => !p.section).length} ingredienser genkendt${odd ? `, ${odd} uden mængde` : ""}</li>` : "";
+  };
+  ig.addEventListener("input", preview); preview();
+  $("#f").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const title = $("#t").value.trim();
+    const err = $("#err");
+    if (!title) { err.textContent = "Giv opskriften en titel."; err.hidden = false; $("#t").focus(); return; }
+    const ingredients = ig.value.split("\n").map(parseIngredientLine).filter(Boolean);
+    if (!ingredients.some((x) => !x.section)) { err.textContent = "Tilføj mindst én ingrediens."; err.hidden = false; ig.focus(); return; }
+    let src = $("#src").value.trim();
+    if (src && !/^https?:\/\//i.test(src)) src = "https://" + src;
+    const rec = {
+      id: existing && !existing.example ? existing.id : uid(),
+      createdAt: existing && existing.createdAt || null,
+      title, description: $("#d").value.trim(),
+      servings: Math.max(1, Math.round(Number($("#sv").value) || 4)),
+      servingsUnit: $("#su").value.trim() || "personer",
+      time: $("#tm").value.trim(), category: $("#ct").value.trim(),
+      source: src, ingredients, steps: parseSteps($("#st").value), notes: $("#nt").value.trim()
+    };
+    $("#save").disabled = true;
+    if (await saveRecipe(rec)) {
+      S.draft = null; delete S.servingsById[rec.id];
+      toast("Opskriften er gemt"); go("opskrift-" + rec.id);
+    } else $("#save").disabled = false;
+  });
+}
+
+/* ---------- Import ---------- */
+const IMPORT_PROMPT = (translate) => `Du får en opskrift kopieret fra en hjemmeside eller et billede. Der kan være støj fra siden (menuer, reklamer, kommentarer); ignorér det.
+Udtræk opskriften og ensret den. ${translate ? "Skriv al tekst på dansk." : "Behold opskriftens sprog."}
+Regler:
+- Omregn amerikanske mål til metriske: cups til dl, oz til g, lb til g, °F til °C, tbsp til spsk, tsp til tsk.
+- Brug kun disse enheder hvor det giver mening: g, kg, ml, dl, l, tsk, spsk, knsp, stk, fed, dåse, pk, bdt, skive. Ellers tom enhed.
+- amount er et tal (decimaler med punktum) eller null. amountMax bruges kun ved intervaller som "2-3".
+- Er ingredienserne delt i grupper (fx "Dej", "Fyld"), indsæt et objekt {"section":"Dej"} før gruppen.
+- Ét trin pr. handling i steps, uden nummerering.
+- servings er antal personer/portioner/stk. som opskriften giver (heltal), servingsUnit fx "personer", "portioner" eller "stk.".
+Svar kun med JSON i dette format:
+{"title":"","description":"","servings":4,"servingsUnit":"personer","time":"","category":"","ingredients":[{"amount":2,"amountMax":null,"unit":"dl","name":"mælk"}],"steps":[""],"notes":""}`;
+
+function toDraft(obj, source) {
+  const o = obj && typeof obj === "object" ? obj : {};
+  return {
+    title: String(o.title || "Ny opskrift"), description: String(o.description || ""),
+    servings: Math.max(1, Math.round(Number(o.servings) || 4)), servingsUnit: String(o.servingsUnit || "personer"),
+    time: String(o.time || ""), category: String(o.category || ""), source: source || "",
+    ingredients: (Array.isArray(o.ingredients) ? o.ingredients : []).map((i) => i && typeof i === "object" ? normalizeIngredient(i) : parseIngredientLine(String(i))).filter(Boolean),
+    steps: (Array.isArray(o.steps) ? o.steps : []).map((s) => String(s).trim()).filter(Boolean),
+    notes: String(o.notes || "")
+  };
+}
+
+let importMode = "text";
+function renderImport() {
+  setTop(`${backBtn()}<div class="brand">Indsæt opskrift</div>`);
+  setFab("");
+  const ai = !!S.sample;
+  const draftText = lsGet("mk:importDraft", "");
+  $("#main").innerHTML = `
+    <div class="stack">
+      <p class="note">Åbn opskriften på hjemmesiden, markér det hele (eller bare opskriften), kopiér og sæt det ind herunder. ${ai ? "Claude rydder op og sætter den ind i det faste format." : "Appen finder ingredienser og fremgangsmåde og sætter dem ind i det faste format."} Du kan rette alt bagefter.</p>
+      ${ai && S.sampleImages ? `<div class="seg" role="group" aria-label="Kilde"><button id="m-text" aria-pressed="${importMode === "text"}">Tekst</button><button id="m-img" aria-pressed="${importMode === "img"}">Skærmbillede</button></div>` : ""}
+      <div class="field" ${importMode === "img" && S.sampleImages ? "hidden" : ""}>
+        <label for="raw">Opskriftens tekst</label>
+        <textarea class="input tall" id="raw" placeholder="Ingredienser&#10;2 cups flour&#10;1 tsp salt&#10;…&#10;&#10;Fremgangsmåde&#10;1. Bland mel og salt…">${esc(draftText)}</textarea>
+      </div>
+      <div class="field" ${importMode === "img" && S.sampleImages ? "" : "hidden"}>
+        <label for="img">Skærmbillede eller foto af opskriften</label>
+        <input class="input" id="img" type="file" accept="image/*">
+      </div>
+      <div class="field"><label for="src">Link til siden</label><input class="input" id="src" type="url" inputmode="url" placeholder="https:// (valgfrit, gemmes som kilde)"></div>
+      ${ai ? `<label class="check"><input type="checkbox" id="tr" checked> Oversæt til dansk</label>` : ""}
+      <p class="note err" id="err" hidden></p>
+      <div class="row">
+        <button class="btn primary" id="go">${ai ? "Ensret med Claude" : "Fortolk opskriften"}</button>
+        ${ai ? `<button class="btn" id="local">Fortolk uden Claude</button>` : ""}
+      </div>
+    </div>`;
+  const raw = $("#raw"), err = $("#err");
+  raw.addEventListener("input", () => lsSet("mk:importDraft", raw.value));
+  if ($("#m-text")) { $("#m-text").onclick = () => { importMode = "text"; renderImport(); }; $("#m-img").onclick = () => { importMode = "img"; renderImport(); }; }
+  const fail = (m) => { err.textContent = m; err.hidden = false; };
+  const finish = (draft) => { lsSet("mk:importDraft", ""); S.draft = draft; go("ny"); };
+  const srcVal = () => { let s = $("#src").value.trim(); if (s && !/^https?:\/\//i.test(s)) s = "https://" + s; return s; };
+  const doLocal = () => {
+    if (!raw.value.trim()) return fail("Sæt opskriftens tekst ind først.");
+    const d = heuristicParse(raw.value);
+    if (!d.ingredients.length) return fail("Jeg kunne ikke finde ingredienserne. Tjek at teksten indeholder en ingrediensliste, eller skriv opskriften selv.");
+    finish(toDraft(d, srcVal()));
+  };
+  if ($("#local")) $("#local").onclick = doLocal;
+  $("#go").onclick = async () => {
+    err.hidden = true;
+    if (!ai) return doLocal();
+    const useImg = importMode === "img" && S.sampleImages;
+    const file = useImg ? $("#img").files[0] : null;
+    if (useImg && !file) return fail("Vælg et billede af opskriften.");
+    if (!useImg && !raw.value.trim()) return fail("Sæt opskriftens tekst ind først.");
+    const btn = $("#go"); btn.disabled = true; btn.innerHTML = `<span class="spin" aria-hidden="true"></span> Ensretter…`;
+    try {
+      const prompt = IMPORT_PROMPT($("#tr").checked) + (useImg ? "\n\nOpskriften står på det vedhæftede billede." : "\n\nTekst:\n" + raw.value.slice(0, 40000));
+      const obj = await S.sample.json(prompt, useImg ? { images: [file], modelTier: "default" } : { modelTier: "default" });
+      const d = toDraft(obj, srcVal());
+      if (!d.ingredients.length) throw { code: "empty" };
+      finish(d);
+    } catch (e) {
+      btn.disabled = false; btn.textContent = "Ensret med Claude";
+      const c = e && e.code;
+      if (c === "not_granted") { S.sample = null; fail("Claude har ikke fået lov til at hjælpe. Appen fortolker selv opskriften i stedet."); setTimeout(() => !useImg && raw.value.trim() && doLocal(), 1200); }
+      else if (c === "rate_limited") fail("Claude har travlt lige nu. Vent et øjeblik og prøv igen, eller fortolk uden Claude.");
+      else if (c === "empty" || c === "invalid_json") fail("Der blev ikke fundet en opskrift i teksten. Prøv at kopiere selve opskriften med.");
+      else fail("Det lykkedes ikke at ensrette opskriften. Prøv igen, eller fortolk uden Claude.");
+    }
+  };
+}
+
+/* ---------- Start ---------- */
+render();
+initStore();
+initSample();
+})();
+</script>
