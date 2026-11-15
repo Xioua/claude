@@ -70,7 +70,7 @@ a { color: var(--accent); }
 .btn:disabled { opacity: .5; cursor: default; }
 .btn svg { width: 18px; height: 18px; flex: none; }
 
-main { padding-block: 16px 96px; }
+main { padding-block: 16px calc(env(safe-area-inset-bottom, 0px) + 110px); }
 .stack { display: flex; flex-direction: column; gap: 16px; }
 
 /* Liste */
@@ -81,7 +81,12 @@ main { padding-block: 16px 96px; }
 .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .cards { display: grid; grid-template-columns: 1fr; gap: 10px; }
 @media (min-width: 560px) { .cards { grid-template-columns: 1fr 1fr; } }
-.card { display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; text-align: left; cursor: pointer; width: 100%; }
+.swipe { position: relative; border-radius: var(--radius); overflow: hidden; }
+.swipe .under { position: absolute; inset: 1px; border: 0; border-radius: var(--radius); background: var(--danger); color: #fff; font-weight: 700; cursor: pointer; text-align: right; padding-right: 30px; visibility: hidden; }
+.swipe:has(.card.open) .under, .swipe:has(.card.dragging) .under, .swipe.closing .under { visibility: visible; }
+.card { position: relative; touch-action: pan-y; user-select: none; -webkit-user-select: none; transition: transform .22s ease; }
+.card.dragging { transition: none; }
+.card { display: grid; grid-template-columns: 52px 1fr auto; gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; text-align: left; cursor: pointer; width: 100%; }
 .card:hover { border-color: var(--accent); }
 .mono { width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 1.35rem; background: var(--accent-soft); color: var(--accent); }
 .card h3 { font-size: 1.05rem; font-weight: 700; }
@@ -93,8 +98,28 @@ main { padding-block: 16px 96px; }
 .empty p { margin: 0; color: var(--ink-soft); }
 .row { display: flex; gap: 10px; flex-wrap: wrap; }
 
-.fab { position: fixed; right: max(16px, calc(env(safe-area-inset-right, 0px) + 12px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); z-index: 6; display: flex; gap: 10px; }
-.fab .btn { box-shadow: 0 6px 20px rgb(0 0 0 / .18); min-height: 50px; padding: 0 20px; }
+.fab { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); z-index: 6; }
+.plus { width: 64px; height: 64px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; cursor: pointer; box-shadow: 0 8px 24px rgb(0 0 0 / .22); transition: transform .2s ease; }
+.plus svg { width: 30px; height: 30px; }
+.plus[aria-expanded="true"] { transform: rotate(45deg); }
+.sheet-bg { position: fixed; inset: 0; z-index: 30; background: rgb(0 0 0 / .4); }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; background: var(--surface); border-radius: 22px 22px 0 0; padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 16px) max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 10px; max-width: 720px; margin: 0 auto; animation: up .22s ease; }
+.sheet .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); align-self: center; margin-bottom: 6px; }
+.sheet h2 { font-size: 1.15rem; }
+.opt { display: grid; grid-template-columns: 48px 1fr; gap: 14px; align-items: center; text-align: left; width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: var(--radius); padding: 14px; cursor: pointer; text-decoration: none; color: var(--ink); }
+.opt .ic { width: 48px; height: 48px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
+.opt .ic svg { width: 22px; height: 22px; }
+.opt b { display: block; font-size: 1rem; }
+.opt span span { color: var(--ink-soft); font-size: .85rem; }
+@keyframes up { from { transform: translateY(100%); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } .card, .plus { transition: none; } }
+.fav { width: 42px; height: 42px; border: 0; background: transparent; border-radius: 50%; display: grid; place-items: center; cursor: pointer; color: var(--ink-soft); }
+.fav svg { width: 22px; height: 22px; }
+.fav[aria-pressed="true"] { color: var(--warm); }
+.fav[aria-pressed="true"] svg { fill: currentColor; }
+.toast { display: flex; align-items: center; gap: 14px; }
+.toast button { border: 0; background: transparent; color: var(--accent-soft); font-weight: 700; cursor: pointer; padding: 4px; text-decoration: underline; }
+.hint { font-size: .85rem; color: var(--ink-soft); margin: 0; }
 
 /* Opskrift */
 .recipe-head { display: flex; flex-direction: column; gap: 8px; }
@@ -151,7 +176,7 @@ textarea.tall { min-height: 220px; }
 .preview-ing { font-size: .85rem; color: var(--ink-soft); margin: 0; padding-left: 18px; }
 .check { display: flex; gap: 8px; align-items: center; font-size: .9rem; }
 .confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
-.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 600; z-index: 20; font-size: .9rem; max-width: calc(100% - 32px); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 600; z-index: 20; font-size: .9rem; max-width: calc(100% - 32px); }
 .spin { width: 16px; height: 16px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: sp .8s linear infinite; }
 @keyframes sp { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s; } }
@@ -174,7 +199,8 @@ textarea.tall { min-height: 220px; }
 </header>
 <main class="wrap" id="main"></main>
 <div class="fab" id="fab"></div>
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" role="status" hidden></div>
+<div id="sheet"></div>
 
 <script>
 (() => {
@@ -190,11 +216,16 @@ const ICON = {
   paste: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2"/></svg>',
   edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>',
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>',
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.5 8.1 3.6 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.6 0 5.7 3.6 4.5 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>',
+  link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7"/></svg>',
   sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
 };
-function toast(msg) {
-  const t = $("#toast"); t.textContent = msg; t.hidden = false;
-  clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 2200);
+function toast(msg, action, fn) {
+  const t = $("#toast");
+  t.innerHTML = `<span>${esc(msg)}</span>` + (action ? `<button type="button">${esc(action)}</button>` : "");
+  t.hidden = false;
+  if (action) t.querySelector("button").onclick = () => { t.hidden = true; fn(); };
+  clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), action ? 5000 : 2200);
 }
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
@@ -433,8 +464,8 @@ async function initStore() {
     });
   } catch { clearTimeout(slowTimer); useLocal(); }
 }
-async function saveRecipe(r) {
-  r.updatedAt = Date.now();
+async function saveRecipe(r, keepTime) {
+  if (!keepTime || !r.updatedAt) r.updatedAt = Date.now();
   if (!r.createdAt) r.createdAt = r.updatedAt;
   const clean = JSON.parse(JSON.stringify(r)); delete clean.example;
   if (S.mode === "db") {
@@ -476,7 +507,7 @@ function route() {
   return { view: "list" };
 }
 const go = (h) => { if (location.hash === "#" + h || (!h && !location.hash)) render(); else location.hash = h; };
-window.addEventListener("hashchange", () => { releaseWake(); render(); window.scrollTo(0, 0); });
+window.addEventListener("hashchange", () => { releaseWake(); $("#sheet").innerHTML = ""; render(); window.scrollTo(0, 0); });
 const visibleRecipes = () => (S.recipes.length ? S.recipes : (S.mode === "loading" ? [] : EXAMPLES));
 const findRecipe = (id) => S.recipes.find((r) => r.id === id) || EXAMPLES.find((r) => r.id === id);
 
@@ -502,23 +533,21 @@ function renderList() {
   setTop(`<div class="brand">Min Kogebog</div>`);
   const all = visibleRecipes();
   const showingExamples = !S.recipes.length && S.mode !== "loading";
-  const cats = ["Alle", ...CATEGORIES];
+  const cats = ["Alle", "Favoritter", ...CATEGORIES];
   if (!cats.includes(S.filter)) S.filter = "Alle";
-  const count = (c) => (c === "Alle" ? all.length : all.filter((r) => normCategory(r.category) === c).length);
+  const inCat = (r, c) => c === "Alle" || (c === "Favoritter" ? !!r.favorite : normCategory(r.category) === c);
+  const count = (c) => all.filter((r) => inCat(r, c)).length;
   const q = S.query.trim().toLowerCase();
-  const list = all.filter((r) => (S.filter === "Alle" || normCategory(r.category) === S.filter) &&
+  const list = all.filter((r) => inCat(r, S.filter) &&
     (!q || r.title.toLowerCase().includes(q) || (r.ingredients || []).some((i) => (i.name || "").toLowerCase().includes(q))));
   $("#main").innerHTML = `
     <div class="stack">
       <input class="search" id="q" type="search" placeholder="Søg i opskrifter eller ingredienser" value="${esc(S.query)}" aria-label="Søg">
-      <div class="chips" role="group" aria-label="Kategorier">${cats.map((c) => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${c === S.filter}">${esc(c)}<span class="n">${count(c)}</span></button>`).join("")}</div>
-      ${showingExamples ? `<div class="empty">
-          <h2 style="font-size:1.25rem">Din kogebog er tom</h2>
-          <p>${IN_CLAUDE ? "Indsæt en opskrift, du har kopieret fra en hjemmeside" : "Sæt et link til en opskrift ind"}, eller skriv din egen. Engelske opskrifter bliver oversat til dansk. Alle opskrifter får samme opsætning og kan skaleres til det antal, du laver mad til. Herunder er to eksempler, så du kan se, hvordan det ser ud.</p>
-          <div class="row"><a class="btn primary" href="#importer">${ICON.paste} ${IN_CLAUDE ? "Indsæt fra nettet" : "Indsæt link"}</a><a class="btn" href="#ny">${ICON.plus} Skriv selv</a></div>
-        </div>` : ""}
+      <div class="chips" role="group" aria-label="Kategorier">${cats.map((c) => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${c === S.filter}">${c === "Favoritter" ? "♥ " : ""}${esc(c)}<span class="n">${count(c)}</span></button>`).join("")}</div>
+      ${showingExamples ? `<p class="hint">Tryk på + nederst for at tilføje din første opskrift. Herunder er to eksempler.</p>` : ""}
       ${S.mode === "loading" ? `<p class="status">${esc(storageLine())}</p>` : ""}
-      <div class="cards">${list.map(cardHtml).join("") || (all.length ? `<p class="status">${q ? "Ingen opskrifter matcher søgningen." : "Ingen opskrifter i " + esc(S.filter.toLowerCase()) + " endnu."}</p>` : "")}</div>
+      <div class="cards">${list.map(cardHtml).join("") || (all.length ? `<p class="status">${q ? "Ingen opskrifter matcher søgningen." : (S.filter === "Favoritter" ? "Ingen favoritter endnu. Tryk på hjertet ved en opskrift." : "Ingen opskrifter i " + esc(S.filter.toLowerCase()) + " endnu.")}</p>` : "")}</div>
+      ${S.recipes.length ? `<p class="hint">Swipe en opskrift til venstre for at slette den.</p>` : ""}
       ${S.mode !== "loading" ? `<p class="status">${esc(storageLine())}</p>` : ""}
       ${!IN_CLAUDE && S.mode === "local" ? `<div class="backup">
         <span class="section-label">Backup</span>
@@ -529,8 +558,9 @@ function renderList() {
   const qi = $("#q");
   qi.addEventListener("input", () => { S.query = qi.value; const pos = qi.selectionStart; renderList(); const n = $("#q"); n.focus(); try { n.setSelectionRange(pos, pos); } catch {} });
   $("#main").querySelectorAll("[data-cat]").forEach((b) => b.addEventListener("click", () => { S.filter = b.dataset.cat; renderList(); }));
-  $("#main").querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => go("opskrift-" + b.dataset.open)));
-  setFab(showingExamples ? "" : `<a class="btn" href="#importer">${ICON.paste} ${IN_CLAUDE ? "Indsæt" : "Link"}</a><a class="btn primary" href="#ny">${ICON.plus} Ny</a>`);
+  $("#main").querySelectorAll(".card").forEach(bindCard);
+  setFab(`<button class="plus" id="plus" aria-label="Tilføj opskrift" aria-haspopup="dialog" aria-expanded="false">${ICON.plus}</button>`);
+  $("#plus").onclick = openAddSheet;
   if ($("#exp")) $("#exp").onclick = exportBackup;
   if ($("#impf")) $("#impf").onchange = (e) => importBackup(e.target.files[0]);
 }
@@ -555,14 +585,109 @@ async function importBackup(file) {
 }
 function cardHtml(r) {
   const letter = (r.title || "?").trim().charAt(0).toUpperCase();
-  return `<button class="card" data-open="${esc(r.id)}">
+  return `<div class="swipe ${r.example ? "nodel" : ""}" data-id="${esc(r.id)}">
+  ${r.example ? "" : `<button class="under" data-del="${esc(r.id)}" tabindex="-1">Slet</button>`}
+  <div class="card" role="link" tabindex="0" data-open="${esc(r.id)}" aria-label="${esc(r.title)}">
     <span class="mono" aria-hidden="true">${r.image && !IN_CLAUDE ? `<img src="${esc(r.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}${r.image && !IN_CLAUDE ? "" : esc(letter)}</span>
     <div>
       ${r.example ? `<span class="tag">Eksempel</span>` : ""}
       <h3>${esc(r.title)}</h3>
       <div class="meta">${[normCategory(r.category), r.time, r.servings ? r.servings + " " + (r.servingsUnit || "personer") : ""].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("")}</div>
     </div>
-  </button>`;
+    ${r.example ? "<span></span>" : `<button class="fav" data-fav="${esc(r.id)}" aria-pressed="${!!r.favorite}" aria-label="${r.favorite ? "Fjern fra favoritter" : "Gør til favorit"}">${ICON.heart}</button>`}
+  </div>
+  </div>`;
+}
+
+/* Swipe til venstre for at slette. Kort swipe viser Slet-knappen, langt swipe sletter med det samme. */
+const REVEAL = 96;
+function bindCard(card) {
+  const id = card.dataset.open;
+  const wrap = card.parentElement;
+  const canDelete = !wrap.classList.contains("nodel");
+  let x0 = 0, y0 = 0, dx = 0, base = 0, drag = false, down = false, moved = false;
+  const setX = (x) => { card.style.transform = x ? `translateX(${x}px)` : ""; };
+  card.addEventListener("pointerdown", (e) => {
+    down = true; drag = false; moved = false; x0 = e.clientX; y0 = e.clientY; dx = 0;
+    base = card.classList.contains("open") ? -REVEAL : 0;
+  });
+  card.addEventListener("pointermove", (e) => {
+    if (!down || !canDelete) return;
+    const mx = e.clientX - x0, my = e.clientY - y0;
+    if (!drag) {
+      if (Math.abs(mx) > 10 && Math.abs(mx) > Math.abs(my) * 1.3) { drag = true; moved = true; card.classList.add("dragging"); try { card.setPointerCapture(e.pointerId); } catch {} }
+      else if (Math.abs(my) > 10) { down = false; return; }
+      else return;
+    }
+    dx = Math.min(0, base + mx);
+    setX(dx);
+  });
+  const end = () => {
+    if (!down) return;
+    down = false;
+    if (!drag) return;
+    card.classList.remove("dragging");
+    drag = false;
+    const w = card.offsetWidth;
+    if (dx < -w * 0.55) { card.style.transform = `translateX(${-w - 20}px)`; setTimeout(() => removeWithUndo(id), 180); }
+    else if (dx < -REVEAL / 2) { closeOpenCards(card); card.classList.add("open"); setX(-REVEAL); }
+    else { card.classList.remove("open"); setX(0); }
+  };
+  card.addEventListener("pointerup", end);
+  card.addEventListener("pointercancel", end);
+  card.addEventListener("click", (e) => {
+    if (moved) { moved = false; return; }
+    const fav = e.target.closest(".fav");
+    if (fav) { e.stopPropagation(); return toggleFavorite(id); }
+    if (card.classList.contains("open")) { card.classList.remove("open"); setX(0); return; }
+    go("opskrift-" + id);
+  });
+  card.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target === card) { e.preventDefault(); go("opskrift-" + id); } });
+  const del = wrap.querySelector("[data-del]");
+  if (del) del.onclick = () => removeWithUndo(id);
+}
+function closeOpenCards(except) {
+  document.querySelectorAll(".card.open").forEach((c) => { if (c !== except) { c.classList.remove("open"); c.style.transform = ""; } });
+}
+async function removeWithUndo(id) {
+  const r = S.recipes.find((x) => x.id === id);
+  if (!r) return;
+  const copy = JSON.parse(JSON.stringify(r));
+  if (await deleteRecipe(id)) {
+    render();
+    toast("«" + copy.title + "» er slettet", "Fortryd", async () => { await saveRecipe(copy, true); render(); });
+  } else render();
+}
+async function toggleFavorite(id) {
+  const r = S.recipes.find((x) => x.id === id);
+  if (!r) return;
+  const next = { ...JSON.parse(JSON.stringify(r)), favorite: !r.favorite };
+  if (S.mode === "db") { Object.assign(r, { favorite: next.favorite }); render(); }
+  if (await saveRecipe(next, true)) { toast(next.favorite ? "Tilføjet til favoritter" : "Fjernet fra favoritter"); render(); }
+}
+
+/* + knappen: vælg mellem link og manuel */
+function openAddSheet() {
+  const plus = $("#plus");
+  plus.setAttribute("aria-expanded", "true");
+  const linkOpt = IN_CLAUDE
+    ? { t: "Indsæt fra nettet", d: "Sæt teksten eller et skærmbillede ind, så sætter Claude den op og oversætter", i: ICON.paste }
+    : { t: "Fra et link", d: "Sæt linket ind, så hentes og oversættes opskriften automatisk", i: ICON.link };
+  $("#sheet").innerHTML = `<div class="sheet-bg" id="sbg"></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sht">
+      <span class="grab" aria-hidden="true"></span>
+      <h2 id="sht">Tilføj opskrift</h2>
+      <a class="opt" href="#importer" id="o1"><span class="ic">${linkOpt.i}</span><span><b>${linkOpt.t}</b><span>${linkOpt.d}</span></span></a>
+      <a class="opt" href="#ny" id="o2"><span class="ic">${ICON.edit}</span><span><b>Skriv selv</b><span>Skriv din egen opskrift ind</span></span></a>
+      <button class="btn ghost" id="scancel">Annullér</button>
+    </div>`;
+  const close = () => { $("#sheet").innerHTML = ""; const p = $("#plus"); if (p) { p.setAttribute("aria-expanded", "false"); } document.removeEventListener("keydown", onKey); };
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  document.addEventListener("keydown", onKey);
+  $("#sbg").onclick = close; $("#scancel").onclick = close;
+  $("#o1").addEventListener("click", () => { S.draft = null; close(); });
+  $("#o2").addEventListener("click", () => { S.draft = null; close(); });
+  $("#o1").focus();
 }
 
 function renderRecipe(id) {
@@ -578,6 +703,7 @@ function renderRecipe(id) {
   const chk = S.checks[r.id] || (S.checks[r.id] = { i: new Set(), s: new Set() });
   const unitName = r.servingsUnit || "personer";
   setTop(`${backBtn()}<div class="brand">${esc(r.title)}</div>
+    ${r.example ? "" : `<button class="fav" id="favr" aria-pressed="${!!r.favorite}" aria-label="${r.favorite ? "Fjern fra favoritter" : "Gør til favorit"}">${ICON.heart}</button>`}
     <button class="btn icon ghost" id="wake" aria-label="Hold skærmen tændt" title="Hold skærmen tændt" aria-pressed="${!!S.wakeLock}">${ICON.sun}</button>`);
   setFab("");
   const presets = [0.5, 1, 2, 3].map((f) => Math.max(1, Math.round(base * f)));
@@ -652,6 +778,7 @@ function renderRecipe(id) {
     else showCopyFallback(text);
   };
   $("#wake").onclick = toggleWake;
+  if ($("#favr")) $("#favr").onclick = () => toggleFavorite(r.id);
   if ($("#keep")) $("#keep").onclick = async () => {
     const copy = JSON.parse(JSON.stringify(r)); copy.id = uid(); delete copy.example;
     if (await saveRecipe(copy)) { toast("Gemt i din kogebog"); go("opskrift-" + copy.id); }
