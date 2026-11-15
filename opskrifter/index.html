@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kogebog">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon.svg">
 <style>:root{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0}[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -154,6 +156,17 @@ textarea.tall { min-height: 220px; }
 @keyframes sp { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s; } }
 .status { font-size: .8rem; color: var(--ink-soft); }
+.chips.multi { flex-wrap: wrap; overflow: visible; }
+.chip .n { opacity: .55; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.mono img { width: 52px; height: 52px; border-radius: 12px; object-fit: cover; display: block; }
+.mono:has(img) { background: var(--surface-2); }
+.hero { width: 100%; max-height: 300px; aspect-ratio: 16 / 10; object-fit: cover; border-radius: var(--radius); background: var(--surface-2); }
+.linkrow { display: flex; gap: 8px; }
+.linkrow .input { flex: 1; min-width: 0; }
+.divider { display: flex; align-items: center; gap: 12px; color: var(--ink-soft); font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.backup { border-top: 1px solid var(--line); padding-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.flabel { font-weight: 600; font-size: .9rem; }
 </style>
 
 <header class="topbar">
@@ -186,6 +199,23 @@ function toast(msg) {
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
+/* Kører appen som selvstændig app (kan hente links) eller inde i claude.ai (kan bruge Claude)? */
+const IN_CLAUDE = !!(window.claude && typeof window.claude.use === "function");
+
+/* ---------- Kategorier ---------- */
+const CATEGORIES = ["Morgenmad", "Middagsmad", "Aftensmad", "Desserter", "Drinks"];
+const CAT_WORDS = [
+  ["Drinks", /(drinks?\b|cocktail|mocktail|smoothie|beverage|lemonade|limonade|sangria|punch\b|milkshake|latte|coffee|kaffe|\bte\b|\btea\b|juice|saft\b|gløgg|mojito|margarita|spritz)/i],
+  ["Desserter", /(dessert|kage|cake|cookie|biscuit|brownie|muffin|cupcake|pudding|mousse|cheesecake|tiramisu|crumble|trifle|\bis\b|ice cream|sorbet|chokolade|chocolate|candy|slik|konfekt|\bpie\b|cobbler|fudge|panna cotta|sweet|baking|bagværk|småkage)/i],
+  ["Morgenmad", /(breakfast|morgenmad|brunch|pancake|pandekage|grød|porridge|oatmeal|overnight oats|granola|müsli|muesli|omelet|scrambled|eggs? benedict|waffle|vaffel|morgenbolle|rundstykke|french toast|chia)/i],
+  ["Middagsmad", /(lunch|frokost|middagsmad|sandwich|smørrebrød|salat|salad|wrap\b|suppe|soup|quiche|snack|appetizer|forret|tapas|bowl\b)/i],
+  ["Aftensmad", /(dinner|aftensmad|main course|main dish|hovedret|entr[ée]e|supper|gryde|stew|curry|pasta|risotto|lasagne|lasagna|steak|bøf|frikadelle|kylling|chicken|fisk|fish|laks|salmon|pork|svin|beef|okse|lam|lamb|taco|pizza|burger)/i]
+];
+const matchCategory = (t) => { if (!t) return null; for (const [c, re] of CAT_WORDS) if (re.test(t)) return c; return null; };
+/* Første tekst er sidens egen kategori (vægtes højest), resten er titel/beskrivelse */
+const guessCategory = (primary, rest) => matchCategory(primary) || matchCategory(rest) || "Aftensmad";
+const normCategory = (c) => (CATEGORIES.includes(c) ? c : (matchCategory(c) || ""));
+
 /* ---------- Enheder: ensretning og skalering ---------- */
 const UNIT_ALIASES = {
   g: ["g", "gr", "gr.", "gram", "grams"], kg: ["kg", "kilo", "kilogram"],
@@ -198,14 +228,15 @@ const UNIT_ALIASES = {
   bdt: ["bdt", "bdt.", "bundt", "bundter", "bunch"], skive: ["skive", "skiver", "slice", "slices"],
   håndfuld: ["håndfuld", "håndfulde", "handful"], dråbe: ["dråbe", "dråber", "drop", "drops"],
   /* Amerikanske mål omregnes ved indlæsning */
-  cup: ["cup", "cups", "c."], oz: ["oz", "ounce", "ounces"], lb: ["lb", "lbs", "pound", "pounds"], floz: ["fl oz", "fl. oz", "fl.oz"]
+  cup: ["cup", "cups", "c."], oz: ["oz", "ounce", "ounces"], lb: ["lb", "lbs", "pound", "pounds"], floz: ["fl oz", "fl. oz", "fl.oz"],
+  stick: ["stick", "sticks"], qt: ["quart", "quarts", "qt"], pt: ["pint", "pints", "pt"]
 };
 const UNIT_LOOKUP = {};
 for (const [k, list] of Object.entries(UNIT_ALIASES)) for (const a of list) UNIT_LOOKUP[a.toLowerCase()] = k;
-const US_TO_METRIC = { cup: [2.4, "dl"], oz: [28, "g"], lb: [450, "g"], floz: [30, "ml"] };
+const US_TO_METRIC = { cup: [2.4, "dl"], oz: [28, "g"], lb: [450, "g"], floz: [30, "ml"], stick: [113, "g"], qt: [9.5, "dl"], pt: [4.7, "dl"] };
 
 const VULGAR = { "½": .5, "⅓": 1/3, "⅔": 2/3, "¼": .25, "¾": .75, "⅕": .2, "⅛": .125, "⅜": .375, "⅝": .625, "⅞": .875 };
-const NUM_RE = "(?:\\d+(?:[.,]\\d+)?(?:\\s+\\d+\\/\\d+|\\s*[½⅓⅔¼¾⅕⅛⅜⅝⅞])?|\\d+\\/\\d+|[½⅓⅔¼¾⅕⅛⅜⅝⅞])";
+const NUM_RE = "(?:\\d+\\s+\\d+\\/\\d+|\\d+\\/\\d+|\\d+(?:[.,]\\d+)?(?:\\s*[½⅓⅔¼¾⅕⅛⅜⅝⅞])?|[½⅓⅔¼¾⅕⅛⅜⅝⅞])";
 function parseNum(s) {
   s = s.trim();
   let m;
@@ -279,6 +310,7 @@ function fmtNum(q, unit) {
     return comma(q, 1);
   }
   if (unit === "kg" || unit === "l") return comma(q, 2);
+  if (unit === "dl") q = q >= 2 ? Math.round(q * 2) / 2 : Math.round(q * 4) / 4;
   if (q >= 10) return String(Math.round(q));
   const whole = Math.floor(q), frac = q - whole;
   let best = FRACS[0], diff = 1;
@@ -341,7 +373,7 @@ function heuristicParse(text) {
 
 /* ---------- Eksempler (vises kun når kogebogen er tom) ---------- */
 const EXAMPLES = [
-  { id: "eksempel-boller", example: true, title: "Grovboller med havregryn", description: "Bløde morgenboller, der kan hæve natten over i køleskabet.", servings: 12, servingsUnit: "stk.", time: "30 min + hævning", category: "Brød", source: "",
+  { id: "eksempel-boller", example: true, title: "Grovboller med havregryn", description: "Bløde morgenboller, der kan hæve natten over i køleskabet.", servings: 12, servingsUnit: "stk.", time: "30 min + hævning", category: "Morgenmad", source: "",
     ingredients: [
       { amount: 5, amountMax: null, unit: "dl", name: "lunkent vand" }, { amount: 25, amountMax: null, unit: "g", name: "gær" },
       { amount: 1, amountMax: null, unit: "spsk", name: "honning" }, { amount: 2, amountMax: null, unit: "tsk", name: "salt" },
@@ -349,7 +381,7 @@ const EXAMPLES = [
       { amount: 450, amountMax: 500, unit: "g", name: "hvedemel" }, { section: "Pynt" }, { amount: 1, amountMax: null, unit: "stk", name: "æg til pensling" }],
     steps: ["Rør gæren ud i vandet med honning og salt.", "Tilsæt havregryn og grahamsmel, og ælt hvedemelet i lidt ad gangen til dejen slipper skålen.", "Lad dejen hæve tildækket i 1 time, eller i køleskabet natten over.", "Form boller, læg dem på en plade med bagepapir og lad dem efterhæve i 20 minutter.", "Pensl med æg og bag ved 225 °C i 12–15 minutter."],
     notes: "Bollerne kan fryses og lunes i ovnen." },
-  { id: "eksempel-suppe", example: true, title: "Tomatsuppe med basilikum", description: "Hurtig hverdagssuppe af dåsetomater.", servings: 4, servingsUnit: "personer", time: "35 min", category: "Aftensmad", source: "",
+  { id: "eksempel-suppe", example: true, title: "Tomatsuppe med basilikum", description: "Hurtig hverdagssuppe af dåsetomater.", servings: 4, servingsUnit: "personer", time: "35 min", category: "Middagsmad", source: "",
     ingredients: [
       { amount: 2, amountMax: null, unit: "spsk", name: "olivenolie" }, { amount: 1, amountMax: null, unit: "stk", name: "løg, hakket" },
       { amount: 2, amountMax: null, unit: "fed", name: "hvidløg" }, { amount: 2, amountMax: null, unit: "dåse", name: "hakkede tomater" },
@@ -424,7 +456,7 @@ async function deleteRecipe(id) {
   return true;
 }
 async function initSample() {
-  if (!window.claude || typeof window.claude.use !== "function") return;
+  if (!IN_CLAUDE) return;
   try {
     const s = await claude.use("sample");
     if (!s) return;
@@ -470,38 +502,65 @@ function renderList() {
   setTop(`<div class="brand">Min Kogebog</div>`);
   const all = visibleRecipes();
   const showingExamples = !S.recipes.length && S.mode !== "loading";
-  const cats = ["Alle", ...new Set(all.map((r) => r.category).filter(Boolean))];
+  const cats = ["Alle", ...CATEGORIES];
   if (!cats.includes(S.filter)) S.filter = "Alle";
+  const count = (c) => (c === "Alle" ? all.length : all.filter((r) => normCategory(r.category) === c).length);
   const q = S.query.trim().toLowerCase();
-  const list = all.filter((r) => (S.filter === "Alle" || r.category === S.filter) &&
+  const list = all.filter((r) => (S.filter === "Alle" || normCategory(r.category) === S.filter) &&
     (!q || r.title.toLowerCase().includes(q) || (r.ingredients || []).some((i) => (i.name || "").toLowerCase().includes(q))));
   $("#main").innerHTML = `
     <div class="stack">
       <input class="search" id="q" type="search" placeholder="Søg i opskrifter eller ingredienser" value="${esc(S.query)}" aria-label="Søg">
-      ${cats.length > 2 ? `<div class="chips" role="group" aria-label="Kategorier">${cats.map((c) => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${c === S.filter}">${esc(c)}</button>`).join("")}</div>` : ""}
+      <div class="chips" role="group" aria-label="Kategorier">${cats.map((c) => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${c === S.filter}">${esc(c)}<span class="n">${count(c)}</span></button>`).join("")}</div>
       ${showingExamples ? `<div class="empty">
           <h2 style="font-size:1.25rem">Din kogebog er tom</h2>
-          <p>Indsæt en opskrift, du har kopieret fra en hjemmeside, eller skriv din egen. Alle opskrifter får samme opsætning og kan skaleres til det antal, du laver mad til. Herunder er to eksempler, så du kan se, hvordan det ser ud.</p>
-          <div class="row"><a class="btn primary" href="#importer">${ICON.paste} Indsæt fra nettet</a><a class="btn" href="#ny">${ICON.plus} Skriv selv</a></div>
+          <p>${IN_CLAUDE ? "Indsæt en opskrift, du har kopieret fra en hjemmeside" : "Sæt et link til en opskrift ind"}, eller skriv din egen. Engelske opskrifter bliver oversat til dansk. Alle opskrifter får samme opsætning og kan skaleres til det antal, du laver mad til. Herunder er to eksempler, så du kan se, hvordan det ser ud.</p>
+          <div class="row"><a class="btn primary" href="#importer">${ICON.paste} ${IN_CLAUDE ? "Indsæt fra nettet" : "Indsæt link"}</a><a class="btn" href="#ny">${ICON.plus} Skriv selv</a></div>
         </div>` : ""}
       ${S.mode === "loading" ? `<p class="status">${esc(storageLine())}</p>` : ""}
-      <div class="cards">${list.map(cardHtml).join("") || (all.length ? `<p class="status">Ingen opskrifter matcher søgningen.</p>` : "")}</div>
+      <div class="cards">${list.map(cardHtml).join("") || (all.length ? `<p class="status">${q ? "Ingen opskrifter matcher søgningen." : "Ingen opskrifter i " + esc(S.filter.toLowerCase()) + " endnu."}</p>` : "")}</div>
       ${S.mode !== "loading" ? `<p class="status">${esc(storageLine())}</p>` : ""}
+      ${!IN_CLAUDE && S.mode === "local" ? `<div class="backup">
+        <span class="section-label">Backup</span>
+        <p class="status" style="margin:0">Opskrifterne ligger kun på denne telefon. Gem en backup en gang imellem, fx i Filer eller iCloud Drive.</p>
+        <div class="row"><button class="btn" id="exp">Gem backup</button><label class="btn" for="impf">Hent backup</label><input id="impf" type="file" accept="application/json,.json" hidden></div>
+      </div>` : ""}
     </div>`;
   const qi = $("#q");
   qi.addEventListener("input", () => { S.query = qi.value; const pos = qi.selectionStart; renderList(); const n = $("#q"); n.focus(); try { n.setSelectionRange(pos, pos); } catch {} });
   $("#main").querySelectorAll("[data-cat]").forEach((b) => b.addEventListener("click", () => { S.filter = b.dataset.cat; renderList(); }));
   $("#main").querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => go("opskrift-" + b.dataset.open)));
-  setFab(showingExamples ? "" : `<a class="btn" href="#importer">${ICON.paste} Indsæt</a><a class="btn primary" href="#ny">${ICON.plus} Ny</a>`);
+  setFab(showingExamples ? "" : `<a class="btn" href="#importer">${ICON.paste} ${IN_CLAUDE ? "Indsæt" : "Link"}</a><a class="btn primary" href="#ny">${ICON.plus} Ny</a>`);
+  if ($("#exp")) $("#exp").onclick = exportBackup;
+  if ($("#impf")) $("#impf").onchange = (e) => importBackup(e.target.files[0]);
+}
+function exportBackup() {
+  const blob = new Blob([JSON.stringify({ app: "min-kogebog", version: 1, exported: new Date().toISOString(), recipes: S.recipes }, null, 1)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "kogebog-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+async function importBackup(file) {
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    const list = Array.isArray(data) ? data : data.recipes;
+    if (!Array.isArray(list)) throw 0;
+    let n = 0;
+    for (const r of list) if (r && r.id && r.title && Array.isArray(r.ingredients)) { await saveRecipe({ ...r }); n++; }
+    toast(n + " opskrifter hentet fra backup"); render();
+  } catch { toast("Filen er ikke en backup fra Min Kogebog"); }
 }
 function cardHtml(r) {
   const letter = (r.title || "?").trim().charAt(0).toUpperCase();
   return `<button class="card" data-open="${esc(r.id)}">
-    <span class="mono" aria-hidden="true">${esc(letter)}</span>
+    <span class="mono" aria-hidden="true">${r.image && !IN_CLAUDE ? `<img src="${esc(r.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}${r.image && !IN_CLAUDE ? "" : esc(letter)}</span>
     <div>
       ${r.example ? `<span class="tag">Eksempel</span>` : ""}
       <h3>${esc(r.title)}</h3>
-      <div class="meta">${[r.category, r.time, r.servings ? r.servings + " " + (r.servingsUnit || "personer") : ""].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("")}</div>
+      <div class="meta">${[normCategory(r.category), r.time, r.servings ? r.servings + " " + (r.servingsUnit || "personer") : ""].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("")}</div>
     </div>
   </button>`;
 }
@@ -525,7 +584,8 @@ function renderRecipe(id) {
   $("#main").innerHTML = `
     <div class="stack">
       <div class="recipe-head">
-        ${r.example ? `<span class="tag">Eksempel</span>` : (r.category ? `<span class="section-label">${esc(r.category)}</span>` : "")}
+        ${r.image && !IN_CLAUDE ? `<img class="hero" src="${esc(r.image)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}
+        ${r.example ? `<span class="tag">Eksempel</span>` : (normCategory(r.category) ? `<span class="section-label">${esc(normCategory(r.category))}</span>` : "")}
         <h1>${esc(r.title)}</h1>
         ${r.description ? `<p>${esc(r.description)}</p>` : ""}
         <div class="facts">
@@ -629,7 +689,7 @@ function renderEdit(id) {
   const isDraft = !existing && !!S.draft;
   setTop(`${backBtn(existing ? "opskrift-" + existing.id : (isDraft ? "importer" : ""))}<div class="brand">${existing ? "Rediger opskrift" : (isDraft ? "Tjek opskriften" : "Ny opskrift")}</div>`);
   setFab("");
-  const cats = [...new Set(S.recipes.map((x) => x.category).filter(Boolean))];
+  let cat = normCategory(r.category) || "";
   $("#main").innerHTML = `
     <form class="stack" id="f" novalidate>
       ${isDraft ? `<p class="note">Opskriften er sat ind i det faste format. Ret det, der ikke passer, og tryk Gem.</p>` : ""}
@@ -640,11 +700,11 @@ function renderEdit(id) {
         <div class="field"><label for="su">Enhed</label><input class="input" id="su" list="units" value="${esc(r.servingsUnit || "personer")}"></div>
       </div>
       <datalist id="units"><option value="personer"><option value="portioner"><option value="stk."><option value="boller"><option value="kager"></datalist>
-      <div class="grid2">
-        <div class="field"><label for="tm">Tid</label><input class="input" id="tm" value="${esc(r.time)}" placeholder="Fx 45 min"></div>
-        <div class="field"><label for="ct">Kategori</label><input class="input" id="ct" list="cats" value="${esc(r.category)}" placeholder="Fx Aftensmad"></div>
+      <div class="field">
+        <span class="flabel" id="ctl">Kategori</span>
+        <div class="chips multi" role="radiogroup" aria-labelledby="ctl" id="ctg">${CATEGORIES.map((c) => `<button type="button" class="chip" role="radio" data-c="${c}" aria-checked="${c === cat}" aria-pressed="${c === cat}">${c}</button>`).join("")}</div>
       </div>
-      <datalist id="cats">${[...new Set([...cats, "Aftensmad", "Brød", "Kage", "Dessert", "Morgenmad", "Tilbehør", "Suppe"])].map((c) => `<option value="${esc(c)}">`).join("")}</datalist>
+      <div class="field"><label for="tm">Tid</label><input class="input" id="tm" value="${esc(r.time)}" placeholder="Fx 45 min"></div>
       <div class="field">
         <label for="ig">Ingredienser</label>
         <span class="hint">Én ingrediens pr. linje, mængde først: «2 dl mælk», «1½ spsk sukker». En linje der slutter med kolon bliver en overskrift, fx «Dej:». Amerikanske mål (cups, oz) omregnes automatisk.</span>
@@ -668,6 +728,10 @@ function renderEdit(id) {
     igp.innerHTML = parsed.length ? `<li>${parsed.filter((p) => !p.section).length} ingredienser genkendt${odd ? `, ${odd} uden mængde` : ""}</li>` : "";
   };
   ig.addEventListener("input", preview); preview();
+  $("#ctg").querySelectorAll("[data-c]").forEach((b) => (b.onclick = () => {
+    cat = b.dataset.c;
+    $("#ctg").querySelectorAll("[data-c]").forEach((x) => { const on = x.dataset.c === cat; x.setAttribute("aria-pressed", on); x.setAttribute("aria-checked", on); });
+  }));
   $("#f").addEventListener("submit", async (e) => {
     e.preventDefault();
     const title = $("#t").value.trim();
@@ -675,6 +739,7 @@ function renderEdit(id) {
     if (!title) { err.textContent = "Giv opskriften en titel."; err.hidden = false; $("#t").focus(); return; }
     const ingredients = ig.value.split("\n").map(parseIngredientLine).filter(Boolean);
     if (!ingredients.some((x) => !x.section)) { err.textContent = "Tilføj mindst én ingrediens."; err.hidden = false; ig.focus(); return; }
+    if (!cat) { err.textContent = "Vælg en kategori."; err.hidden = false; $("#ctg").scrollIntoView({ block: "center" }); return; }
     let src = $("#src").value.trim();
     if (src && !/^https?:\/\//i.test(src)) src = "https://" + src;
     const rec = {
@@ -683,7 +748,7 @@ function renderEdit(id) {
       title, description: $("#d").value.trim(),
       servings: Math.max(1, Math.round(Number($("#sv").value) || 4)),
       servingsUnit: $("#su").value.trim() || "personer",
-      time: $("#tm").value.trim(), category: $("#ct").value.trim(),
+      time: $("#tm").value.trim(), category: cat, image: (existing && existing.image) || r.image || "",
       source: src, ingredients, steps: parseSteps($("#st").value), notes: $("#nt").value.trim()
     };
     $("#save").disabled = true;
@@ -704,6 +769,7 @@ Regler:
 - Er ingredienserne delt i grupper (fx "Dej", "Fyld"), indsæt et objekt {"section":"Dej"} før gruppen.
 - Ét trin pr. handling i steps, uden nummerering.
 - servings er antal personer/portioner/stk. som opskriften giver (heltal), servingsUnit fx "personer", "portioner" eller "stk.".
+- category er præcis én af: "Morgenmad", "Middagsmad" (frokost), "Aftensmad", "Desserter" (også kager og bagværk), "Drinks".
 Svar kun med JSON i dette format:
 {"title":"","description":"","servings":4,"servingsUnit":"personer","time":"","category":"","ingredients":[{"amount":2,"amountMax":null,"unit":"dl","name":"mælk"}],"steps":[""],"notes":""}`;
 
@@ -712,83 +778,304 @@ function toDraft(obj, source) {
   return {
     title: String(o.title || "Ny opskrift"), description: String(o.description || ""),
     servings: Math.max(1, Math.round(Number(o.servings) || 4)), servingsUnit: String(o.servingsUnit || "personer"),
-    time: String(o.time || ""), category: String(o.category || ""), source: source || "",
+    time: String(o.time || ""), category: normCategory(String(o.category || "")) || guessCategory("", String(o.title || "") + " " + String(o.description || "")),
+    source: source || "", image: typeof o.image === "string" ? o.image : "",
     ingredients: (Array.isArray(o.ingredients) ? o.ingredients : []).map((i) => i && typeof i === "object" ? normalizeIngredient(i) : parseIngredientLine(String(i))).filter(Boolean),
     steps: (Array.isArray(o.steps) ? o.steps : []).map((s) => String(s).trim()).filter(Boolean),
     notes: String(o.notes || "")
   };
 }
 
-let importMode = "text";
+/* ---------- Hent opskrift fra et link ---------- */
+/* Browseren må ikke læse andre sider direkte, så siden hentes gennem en offentlig CORS-proxy.
+   Svaret parses med DOMParser (kører ingen scripts) og kun tekst bruges videre. */
+const PROXIES = [
+  (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+  (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u),
+  (u) => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u)
+];
+async function fetchHtml(url) {
+  for (const p of PROXIES) {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 15000);
+    try {
+      const r = await fetch(p(url), { signal: ctl.signal });
+      clearTimeout(t);
+      if (!r.ok) continue;
+      const html = await r.text();
+      if (html && html.length > 300) return html;
+    } catch { clearTimeout(t); }
+  }
+  throw { code: "fetch" };
+}
+const strip = (s) => (s == null ? "" : new DOMParser().parseFromString(String(s), "text/html").documentElement.textContent.replace(/\s+/g, " ").trim());
+function findRecipeNode(j) {
+  if (!j || typeof j !== "object") return null;
+  if (Array.isArray(j)) { for (const x of j) { const r = findRecipeNode(x); if (r) return r; } return null; }
+  const t = j["@type"];
+  if (t === "Recipe" || (Array.isArray(t) && t.includes("Recipe"))) return j;
+  return findRecipeNode(j["@graph"]) || findRecipeNode(j.mainEntity) || findRecipeNode(j.mainEntityOfPage);
+}
+function isoDuration(s) {
+  const m = String(s || "").match(/P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?/i);
+  if (!m) return 0;
+  return (+m[1] || 0) * 1440 + (+m[2] || 0) * 60 + (+m[3] || 0);
+}
+function fmtMinutes(min) {
+  if (!min) return "";
+  const h = Math.floor(min / 60), m = min % 60;
+  return h ? (h + " t" + (m ? " " + m + " min" : "")) : m + " min";
+}
+function flattenSteps(ins) {
+  if (!ins) return [];
+  if (typeof ins === "string") return parseSteps(strip(ins).replace(/(\.)\s+(?=\d+[.)]\s)/g, "$1\n"));
+  if (Array.isArray(ins)) return ins.flatMap(flattenSteps);
+  if (typeof ins === "object") {
+    if (ins.itemListElement) return flattenSteps(ins.itemListElement);
+    const t = strip(ins.text || ins.name || "");
+    return t ? [t] : [];
+  }
+  return [];
+}
+function pickImage(img) {
+  if (!img) return "";
+  if (typeof img === "string") return /^https?:\/\//.test(img) ? img : "";
+  if (Array.isArray(img)) { for (const x of img) { const u = pickImage(x); if (u) return u; } return ""; }
+  return pickImage(img.url || img.contentUrl);
+}
+function parseYield(y) {
+  const list = Array.isArray(y) ? y : [y];
+  for (const v of list) {
+    const s = String(v ?? "");
+    const m = s.match(/(\d+)/);
+    if (m) return { servings: +m[1], unit: /(stk|piece|cookie|muffin|bar|roll|bolle|biscuit|slice|skive|serving|portion)/i.test(s) && !/(serving|portion|person|people)/i.test(s) ? "stk." : (/portion|serving/i.test(s) ? "portioner" : "personer") };
+  }
+  return { servings: 4, unit: "personer" };
+}
+function pageText(doc) {
+  doc.querySelectorAll("script,style,noscript,nav,header,footer,aside,form,iframe,svg,button").forEach((e) => e.remove());
+  doc.querySelectorAll("br").forEach((b) => b.replaceWith("\n"));
+  doc.querySelectorAll("p,li,h1,h2,h3,h4,h5,h6,div,tr,section,article").forEach((e) => e.append("\n"));
+  const root = doc.querySelector("[class*=recipe]") || doc.querySelector("article") || doc.querySelector("main") || doc.body;
+  return (root ? root.textContent : "").split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter((l, i, a) => l || a[i - 1]).join("\n");
+}
+function parseRecipeHtml(html, url) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  let rec = null;
+  for (const sc of doc.querySelectorAll('script[type="application/ld+json"]')) {
+    try { rec = findRecipeNode(JSON.parse(sc.textContent.replace(/[\u0000-\u001f]+/g, " "))); } catch {}
+    if (rec) break;
+  }
+  const pageTitle = strip(doc.querySelector('meta[property="og:title"]')?.getAttribute("content") || doc.title);
+  const ogImage = doc.querySelector('meta[property="og:image"]')?.getAttribute("content") || "";
+  if (rec) {
+    const y = parseYield(rec.recipeYield);
+    const time = fmtMinutes(isoDuration(rec.totalTime) || (isoDuration(rec.prepTime) + isoDuration(rec.cookTime)));
+    const cats = [rec.recipeCategory, rec.recipeCourse, rec.keywords].flat().filter(Boolean).map(String).join(" ");
+    const title = strip(rec.name) || pageTitle;
+    const desc = strip(rec.description).slice(0, 300);
+    return {
+      title, description: desc, servings: y.servings, servingsUnit: y.unit, time,
+      category: guessCategory(cats, title + " " + desc),
+      ingredients: [rec.recipeIngredient || rec.ingredients || []].flat().map((i) => parseIngredientLine(strip(i))).filter(Boolean),
+      steps: flattenSteps(rec.recipeInstructions),
+      notes: "", image: pickImage(rec.image) || ogImage, source: url
+    };
+  }
+  /* Ingen strukturerede data: prøv microdata, ellers sidens tekst */
+  const micro = [...doc.querySelectorAll('[itemprop="recipeIngredient"],[itemprop="ingredients"]')].map((e) => strip(e.textContent));
+  if (micro.length) {
+    const steps = [...doc.querySelectorAll('[itemprop="recipeInstructions"]')].flatMap((e) => parseSteps(e.textContent));
+    return { title: pageTitle, description: "", servings: 4, servingsUnit: "personer", time: "", category: guessCategory("", pageTitle),
+      ingredients: micro.map(parseIngredientLine).filter(Boolean), steps, notes: "", image: ogImage, source: url };
+  }
+  const d = heuristicParse(pageText(doc));
+  if (pageTitle) d.title = pageTitle;
+  d.image = ogImage; d.source = url;
+  return d;
+}
+
+/* ---------- Oversættelse (engelsk -> dansk) ---------- */
+const EN_WORDS = new Set("the and of with to in for until into add stir minutes heat cup cups teaspoon tablespoon or on from bake mix large salt pepper oil water sugar flour butter chopped place pan oven serve remove about over cook".split(" "));
+const DA_WORDS = new Set("og med til i en et af på eller som det minutter tilsæt rør peber smør mel sukker vand hakket server ovnen gryde bag lad skær".split(" "));
+function looksEnglish(text) {
+  const w = String(text).toLowerCase().match(/[a-zæøå]+/g) || [];
+  let en = 0, da = 0;
+  for (const x of w) { if (EN_WORDS.has(x)) en++; if (DA_WORDS.has(x)) da++; }
+  return en >= 3 && en > da * 1.5;
+}
+async function gtx(text) {
+  const r = await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=da&dt=t&q=" + encodeURIComponent(text));
+  if (!r.ok) throw { code: "translate" };
+  const j = await r.json();
+  return (j[0] || []).map((x) => x[0]).join("");
+}
+async function translateList(items) {
+  const out = items.slice();
+  const idx = items.map((s, i) => (s && s.trim() ? i : -1)).filter((i) => i >= 0);
+  let chunk = [], len = 0;
+  const flush = async () => {
+    if (!chunk.length) return;
+    const res = (await gtx(chunk.map((i) => items[i].replace(/\n/g, " ")).join("\n"))).split("\n");
+    if (res.length === chunk.length) chunk.forEach((i, k) => (out[i] = res[k].trim()));
+    else for (const i of chunk) out[i] = (await gtx(items[i])).trim();
+    chunk = []; len = 0;
+  };
+  for (const i of idx) {
+    if (len + items[i].length > 1400) await flush();
+    chunk.push(i); len += items[i].length + 1;
+  }
+  await flush();
+  return out;
+}
+const fToC = (s) => String(s || "").replace(/(\d{3})\s*(?:°|º|degrees?)?\s*F\b/gi, (m, f) => Math.round(((f - 32) * 5) / 9 / 5) * 5 + " °C");
+async function translateDraft(d) {
+  d.steps = d.steps.map(fToC); d.notes = fToC(d.notes);
+  const ings = d.ingredients;
+  const items = [d.title, d.description, d.notes, d.time, ...ings.map((i) => i.section || i.name), ...d.steps];
+  const tr = await translateList(items);
+  let k = 0;
+  d.title = tr[k++]; d.description = tr[k++]; d.notes = tr[k++]; d.time = tr[k++];
+  d.ingredients = ings.map((i) => (i.section ? { section: tr[k++] } : { ...i, name: tr[k++] }));
+  d.steps = d.steps.map(() => tr[k++]);
+  return d;
+}
+
+/* ---------- Import-visning ---------- */
+let importMode = IN_CLAUDE ? "text" : "link";
+const prefs = lsGet("mk:prefs", { translate: true });
 function renderImport() {
-  setTop(`${backBtn()}<div class="brand">Indsæt opskrift</div>`);
+  setTop(`${backBtn()}<div class="brand">${IN_CLAUDE ? "Indsæt opskrift" : "Tilføj fra nettet"}</div>`);
   setFab("");
-  const ai = !!S.sample;
+  const ai = IN_CLAUDE && !!S.sample;
   const draftText = lsGet("mk:importDraft", "");
+  const tabs = IN_CLAUDE ? (ai && S.sampleImages ? [["text", "Tekst"], ["img", "Skærmbillede"]] : []) : [["link", "Link"], ["text", "Tekst"]];
+  if (!tabs.some((t) => t[0] === importMode)) importMode = tabs.length ? tabs[0][0] : "text";
+  const shared = S.sharedLink || "";
   $("#main").innerHTML = `
     <div class="stack">
-      <p class="note">Åbn opskriften på hjemmesiden, markér det hele (eller bare opskriften), kopiér og sæt det ind herunder. ${ai ? "Claude rydder op og sætter den ind i det faste format." : "Appen finder ingredienser og fremgangsmåde og sætter dem ind i det faste format."} Du kan rette alt bagefter.</p>
-      ${ai && S.sampleImages ? `<div class="seg" role="group" aria-label="Kilde"><button id="m-text" aria-pressed="${importMode === "text"}">Tekst</button><button id="m-img" aria-pressed="${importMode === "img"}">Skærmbillede</button></div>` : ""}
-      <div class="field" ${importMode === "img" && S.sampleImages ? "hidden" : ""}>
-        <label for="raw">Opskriftens tekst</label>
-        <textarea class="input tall" id="raw" placeholder="Ingredienser&#10;2 cups flour&#10;1 tsp salt&#10;…&#10;&#10;Fremgangsmåde&#10;1. Bland mel og salt…">${esc(draftText)}</textarea>
+      ${tabs.length ? `<div class="seg" role="group" aria-label="Kilde">${tabs.map(([k, l]) => `<button data-mode="${k}" aria-pressed="${importMode === k}">${l}</button>`).join("")}</div>` : ""}
+
+      <div class="stack" ${importMode === "link" ? "" : "hidden"}>
+        <p class="note">Kopiér linket til opskriften fra browseren og sæt det ind. Appen henter titel, antal, ingredienser og fremgangsmåde og sætter det op i det faste format.</p>
+        <div class="field">
+          <label for="url">Link til opskriften</label>
+          <div class="linkrow">
+            <input class="input" id="url" type="url" inputmode="url" autocomplete="off" placeholder="https://www.valdemarsro.dk/…" value="${esc(shared)}">
+            ${navigator.clipboard && navigator.clipboard.readText ? `<button class="btn" id="pasteurl" type="button">${ICON.paste} Sæt ind</button>` : ""}
+          </div>
+        </div>
       </div>
-      <div class="field" ${importMode === "img" && S.sampleImages ? "" : "hidden"}>
+
+      <div class="stack" ${importMode === "text" ? "" : "hidden"}>
+        <p class="note">${IN_CLAUDE ? "Åbn opskriften på hjemmesiden, markér og kopiér teksten, og sæt den ind herunder. " + (ai ? "Claude rydder op og sætter den ind i det faste format." : "Appen finder ingredienser og fremgangsmåde.") : "Virker et link ikke, kan du kopiere opskriftens tekst fra siden og sætte den ind her."} Du kan rette alt bagefter.</p>
+        <div class="field">
+          <label for="raw">Opskriftens tekst</label>
+          <textarea class="input tall" id="raw" placeholder="Ingredienser&#10;2 cups flour&#10;1 tsp salt&#10;…&#10;&#10;Fremgangsmåde&#10;1. Bland mel og salt…">${esc(draftText)}</textarea>
+        </div>
+        <div class="field"><label for="src">Link til siden</label><input class="input" id="src" type="url" inputmode="url" placeholder="https:// (valgfrit, gemmes som kilde)"></div>
+      </div>
+
+      <div class="field" ${importMode === "img" ? "" : "hidden"}>
         <label for="img">Skærmbillede eller foto af opskriften</label>
         <input class="input" id="img" type="file" accept="image/*">
       </div>
-      <div class="field"><label for="src">Link til siden</label><input class="input" id="src" type="url" inputmode="url" placeholder="https:// (valgfrit, gemmes som kilde)"></div>
-      ${ai ? `<label class="check"><input type="checkbox" id="tr" checked> Oversæt til dansk</label>` : ""}
+
+      ${!IN_CLAUDE || ai ? `<label class="check"><input type="checkbox" id="tr" ${prefs.translate ? "checked" : ""}> Oversæt engelske opskrifter til dansk</label>` : ""}
       <p class="note err" id="err" hidden></p>
       <div class="row">
-        <button class="btn primary" id="go">${ai ? "Ensret med Claude" : "Fortolk opskriften"}</button>
-        ${ai ? `<button class="btn" id="local">Fortolk uden Claude</button>` : ""}
+        <button class="btn primary" id="go">${importMode === "link" ? "Hent opskrift" : (ai ? "Ensret med Claude" : "Fortolk opskriften")}</button>
+        ${ai && importMode === "text" ? `<button class="btn" id="local">Fortolk uden Claude</button>` : ""}
       </div>
+      ${!IN_CLAUDE ? `<p class="status">På Android kan du også trykke Del på en opskrift i browseren og vælge Kogebog.</p>` : ""}
     </div>`;
+
   const raw = $("#raw"), err = $("#err");
   raw.addEventListener("input", () => lsSet("mk:importDraft", raw.value));
-  if ($("#m-text")) { $("#m-text").onclick = () => { importMode = "text"; renderImport(); }; $("#m-img").onclick = () => { importMode = "img"; renderImport(); }; }
+  $("#main").querySelectorAll("[data-mode]").forEach((b) => (b.onclick = () => { importMode = b.dataset.mode; renderImport(); }));
+  if ($("#tr")) $("#tr").onchange = (e) => { prefs.translate = e.target.checked; lsSet("mk:prefs", prefs); };
+  if ($("#pasteurl")) $("#pasteurl").onclick = async () => {
+    try { const t = await navigator.clipboard.readText(); const m = t.match(/https?:\/\/\S+/); $("#url").value = m ? m[0] : t.trim(); }
+    catch { $("#url").focus(); toast("Tryk og hold i feltet for at sætte ind"); }
+  };
   const fail = (m) => { err.textContent = m; err.hidden = false; };
-  const finish = (draft) => { lsSet("mk:importDraft", ""); S.draft = draft; go("ny"); };
+  const btn = $("#go");
+  const busy = (label) => { btn.disabled = true; btn.innerHTML = `<span class="spin" aria-hidden="true"></span> ${esc(label)}`; };
+  const idle = () => { btn.disabled = false; btn.textContent = importMode === "link" ? "Hent opskrift" : (ai ? "Ensret med Claude" : "Fortolk opskriften"); };
+  const wantTranslate = () => !!($("#tr") && $("#tr").checked);
   const srcVal = () => { let s = $("#src").value.trim(); if (s && !/^https?:\/\//i.test(s)) s = "https://" + s; return s; };
-  const doLocal = () => {
+
+  /* Fælles afslutning for link og tekst uden Claude: oversæt evt. og åbn redigering */
+  const finishLocal = async (d, source) => {
+    let draft = toDraft(d, source);
+    draft.image = d.image || "";
+    if (!IN_CLAUDE && wantTranslate() && looksEnglish([draft.title, ...draft.ingredients.map((i) => i.name || ""), ...draft.steps].join(" "))) {
+      busy("Oversætter…");
+      try { draft = await translateDraft(draft); }
+      catch { toast("Oversættelsen mislykkedes. Opskriften er sat ind på engelsk."); }
+    }
+    lsSet("mk:importDraft", ""); S.sharedLink = ""; S.draft = draft; go("ny");
+  };
+  const doText = async () => {
     if (!raw.value.trim()) return fail("Sæt opskriftens tekst ind først.");
     const d = heuristicParse(raw.value);
     if (!d.ingredients.length) return fail("Jeg kunne ikke finde ingredienserne. Tjek at teksten indeholder en ingrediensliste, eller skriv opskriften selv.");
-    finish(toDraft(d, srcVal()));
+    await finishLocal(d, srcVal());
   };
-  if ($("#local")) $("#local").onclick = doLocal;
-  $("#go").onclick = async () => {
+  const doLink = async () => {
+    let url = $("#url").value.trim();
+    const m = url.match(/https?:\/\/\S+/); if (m) url = m[0];
+    else if (url && !/\s/.test(url) && url.includes(".")) url = "https://" + url;
+    else return fail("Sæt et link ind, der starter med https://");
+    busy("Henter siden…");
+    let d;
+    try { d = parseRecipeHtml(await fetchHtml(url), url); }
+    catch { idle(); return fail("Siden kunne ikke hentes. Nogle sider blokerer for det. Prøv igen om lidt, eller kopiér opskriftens tekst og brug fanen Tekst."); }
+    if (!d.ingredients.length) { idle(); return fail("Jeg fandt ingen opskrift på siden. Kopiér opskriftens tekst og brug fanen Tekst."); }
+    await finishLocal(d, url);
+  };
+  if ($("#local")) $("#local").onclick = doText;
+  btn.onclick = async () => {
     err.hidden = true;
-    if (!ai) return doLocal();
-    const useImg = importMode === "img" && S.sampleImages;
+    if (importMode === "link") return doLink();
+    if (!ai) return doText();
+    const useImg = importMode === "img";
     const file = useImg ? $("#img").files[0] : null;
     if (useImg && !file) return fail("Vælg et billede af opskriften.");
     if (!useImg && !raw.value.trim()) return fail("Sæt opskriftens tekst ind først.");
-    const btn = $("#go"); btn.disabled = true; btn.innerHTML = `<span class="spin" aria-hidden="true"></span> Ensretter…`;
+    busy("Ensretter…");
     try {
-      const prompt = IMPORT_PROMPT($("#tr").checked) + (useImg ? "\n\nOpskriften står på det vedhæftede billede." : "\n\nTekst:\n" + raw.value.slice(0, 40000));
+      const prompt = IMPORT_PROMPT(wantTranslate()) + (useImg ? "\n\nOpskriften står på det vedhæftede billede." : "\n\nTekst:\n" + raw.value.slice(0, 40000));
       const obj = await S.sample.json(prompt, useImg ? { images: [file], modelTier: "default" } : { modelTier: "default" });
-      const d = toDraft(obj, srcVal());
+      const d = toDraft(obj, useImg ? "" : srcVal());
       if (!d.ingredients.length) throw { code: "empty" };
-      finish(d);
+      lsSet("mk:importDraft", ""); S.draft = d; go("ny");
     } catch (e) {
-      btn.disabled = false; btn.textContent = "Ensret med Claude";
+      idle();
       const c = e && e.code;
-      if (c === "not_granted") { S.sample = null; fail("Claude har ikke fået lov til at hjælpe. Appen fortolker selv opskriften i stedet."); setTimeout(() => !useImg && raw.value.trim() && doLocal(), 1200); }
+      if (c === "not_granted") { S.sample = null; fail("Claude har ikke fået lov til at hjælpe. Brug Fortolk uden Claude."); }
       else if (c === "rate_limited") fail("Claude har travlt lige nu. Vent et øjeblik og prøv igen, eller fortolk uden Claude.");
       else if (c === "empty" || c === "invalid_json") fail("Der blev ikke fundet en opskrift i teksten. Prøv at kopiere selve opskriften med.");
       else fail("Det lykkedes ikke at ensrette opskriften. Prøv igen, eller fortolk uden Claude.");
     }
   };
+  if (shared && importMode === "link" && !S.autoFetched) { S.autoFetched = true; doLink(); }
 }
 
 /* ---------- Start ---------- */
+/* Delt link fra Android (Web Share Target): ?url=…&text=… */
+try {
+  const sp = new URLSearchParams(location.search);
+  const sharedText = [sp.get("url"), sp.get("text"), sp.get("title")].filter(Boolean).join(" ");
+  const m = sharedText.match(/https?:\/\/\S+/);
+  if (m) { S.sharedLink = m[0]; history.replaceState(null, "", location.pathname + "#importer"); }
+} catch {}
 render();
 initStore();
 initSample();
 })();
 </script>
 
+<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});</script>
 </body>
 </html>
