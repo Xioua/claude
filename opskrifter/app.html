@@ -196,6 +196,8 @@ textarea.tall { min-height: 220px; }
 .check { display: flex; gap: 10px; align-items: center; font-size: .92rem; }
 .check input { width: 20px; height: 20px; accent-color: var(--accent); }
 .confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: #fff1f0; border-radius: 16px; padding: 10px 12px; }
+.divider { display: flex; align-items: center; gap: 12px; color: var(--ink-soft); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .linkrow { display: flex; gap: 8px; }
 .linkrow .input { flex: 1; min-width: 0; }
 
@@ -493,6 +495,15 @@ async function initStore() {
    Koden er lang og tilfældig og fungerer som adgangskode; den deles kun via invitationslinket.
    Hver telefon beholder en kopi, så appen også virker uden net. */
 const FB_VERSION = "10.12.2";
+/* Jeres Firebase-projekt. Disse oplysninger er ikke hemmelige; adgangen styres af reglerne i Firestore. */
+const DEFAULT_FIREBASE = {
+  apiKey: "AIzaSyAiWoS5yco_HvqQMgrZZt1crIUjSTKPZow",
+  authDomain: "kogebog-b06b2.firebaseapp.com",
+  projectId: "kogebog-b06b2",
+  storageBucket: "kogebog-b06b2.firebasestorage.app",
+  messagingSenderId: "55052226356",
+  appId: "1:55052226356:web:30452956688a31ccf09f61"
+};
 const cloudCfg = () => lsGet("mk:cloud", null);
 function loadScript(src) {
   return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("load")); document.head.append(s); });
@@ -610,8 +621,11 @@ function openCloudSheet() {
           <div class="linkrow"><input class="input" id="invl" type="url" inputmode="url" autocomplete="off" placeholder="Sæt linket ind her"><button class="btn primary" id="join" type="button">Deltag</button></div>
         </div>
         <p class="note err" id="joinerr" hidden></p>
-        <p class="hint" style="margin-top:6px"><b>Første gang</b>, før I har en fælles kogebog, opretter den ene af jer et gratis Firebase-projekt og sætter opsætningen ind her. Vejledningen ligger i appens README på GitHub.</p>
-        <div class="field">
+        ${DEFAULT_FIREBASE ? `
+        <div class="divider">eller</div>
+        <p class="hint">Er I ikke kommet i gang endnu? Så opret kogebogen her, og inviter derefter din kæreste.</p>
+        ` : `<p class="hint" style="margin-top:6px"><b>Første gang</b>, før I har en fælles kogebog, opretter den ene af jer et gratis Firebase-projekt og sætter opsætningen ind her. Vejledningen ligger i appens README på GitHub.</p>`}
+        <div class="field" ${DEFAULT_FIREBASE ? "hidden" : ""}>
           <label for="fbc">Firebase-opsætning</label>
           <span class="hint">Indsæt teksten fra Firebase, der starter med <b>const firebaseConfig</b>.</span>
           <textarea class="input" id="fbc" placeholder="const firebaseConfig = {&#10;  apiKey: &quot;…&quot;,&#10;  projectId: &quot;…&quot;,&#10;  appId: &quot;…&quot;&#10;};"></textarea>
@@ -641,7 +655,7 @@ function openCloudSheet() {
     } catch { const e = $("#joinerr"); e.textContent = "Det er ikke et gyldigt invitationslink. Kopiér hele linket fra beskeden."; e.hidden = false; }
   };
   if ($("#create")) $("#create").onclick = async () => {
-    const cfg = parseFirebaseConfig($("#fbc").value);
+    const cfg = DEFAULT_FIREBASE || parseFirebaseConfig($("#fbc").value);
     const err = $("#fberr");
     if (!cfg) { err.textContent = "Jeg kan ikke finde apiKey, projectId og appId i teksten. Kopiér hele blokken fra Firebase."; err.hidden = false; return; }
     $("#create").disabled = true; $("#create").innerHTML = `<span class="spin" aria-hidden="true"></span> Opretter…`;
