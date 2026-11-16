@@ -131,7 +131,8 @@ main { padding-block: 8px calc(env(safe-area-inset-bottom, 0px) + 120px); }
 .fav[aria-pressed="true"] { color: var(--danger); }
 .fav[aria-pressed="true"] svg { fill: currentColor; }
 
-.chip.add { background: transparent; border: 1.5px dashed var(--line); color: var(--ink-soft); }
+.chip.add { background: transparent; border: 1.5px dashed var(--line); color: var(--ink-soft); display: inline-flex; align-items: center; gap: 6px; }
+.chip.add svg { width: 14px; height: 14px; }
 .addcat { display: flex; gap: 8px; }
 .addcat .input { flex: 1; min-width: 0; }
 .catlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -276,8 +277,12 @@ const CAT_WORDS = [
 const matchCategory = (t) => { if (!t) return null; for (const [c, re] of CAT_WORDS) if (re.test(t)) return c; return null; };
 /* Første tekst er sidens egen kategori (vægtes højest), resten er titel/beskrivelse */
 const guessCategory = (primary, rest) => matchCategory(primary) || matchCategory(rest) || "Aftensmad";
-const allCats = () => [...CATEGORIES, ...((typeof S !== "undefined" && S.customCats) || [])];
-const normCategory = (c) => (allCats().includes(c) ? c : (matchCategory(c) || ""));
+/* Standardkategorier kan skjules ("slettes"); egne kategorier kommer efter dem */
+const allCats = () => {
+  const st = typeof S !== "undefined" ? S : { customCats: [], hiddenCats: [] };
+  return [...CATEGORIES.filter((c) => !st.hiddenCats.includes(c)), ...st.customCats];
+};
+const normCategory = (c) => { if (allCats().includes(c)) return c; const m = matchCategory(c); return m && allCats().includes(m) ? m : ""; };
 
 /* ---------- Enheder: ensretning og skalering ---------- */
 const UNIT_ALIASES = {
@@ -469,6 +474,7 @@ const S = {
   slow: false,
   hiddenExamples: lsGet("mk:hiddenExamples", []),
   customCats: lsGet("mk:cats", []),
+  hiddenCats: lsGet("mk:hiddenCats", []),
   sharedRecipe: null,
   inviteNote: "",
   draft: null            // forudfyldt opskrift fra import
@@ -492,7 +498,7 @@ async function initStore() {
       if (!snap.metadata.fromCache) { clearTimeout(slowTimer); S.slow = false; }
       S.mode = "db";
       const settings = snap.docs.find((d) => d.id === SETTINGS_ID);
-      if (settings && Array.isArray(settings.data().customCategories)) S.customCats = settings.data().customCategories.map(String);
+      if (settings) readCatSettings(settings.data());
       S.recipes = sortRecipes(snap.docs.filter((d) => d.id !== SETTINGS_ID).map((d) => ({ ...d.data(), id: d.id })));
       /* Tegn ikke formularer om, mens man skriver i dem */
       const v = route().view;
@@ -559,7 +565,7 @@ async function initCloud() {
       if (!snap.metadata.fromCache) { clearTimeout(slowTimer); S.slow = false; }
       S.mode = "cloud";
       const settings = snap.docs.find((d) => d.id === SETTINGS_ID);
-      if (settings && Array.isArray(settings.data().customCategories)) { S.customCats = settings.data().customCategories.map(String); lsSet("mk:cats", S.customCats); }
+      if (settings) readCatSettings(settings.data());
       S.recipes = sortRecipes(snap.docs.filter((d) => d.id !== SETTINGS_ID).map((d) => ({ ...d.data(), id: d.id })));
       lsSet("mk:recipes", S.recipes);
       const v = route().view;
@@ -589,8 +595,10 @@ async function uploadLocalOnce(code) {
     let n = 0;
     for (const r of mine) if (r && r.id && !ids.has(r.id)) { batch.set(S.col.doc(r.id), JSON.parse(JSON.stringify(r))); n++; }
     const old = existing.docs.find((d) => d.id === SETTINGS_ID);
-    const merged = [...new Set([...((old && old.data().customCategories) || []), ...cats])];
-    if (merged.length) batch.set(S.col.doc(SETTINGS_ID), { customCategories: merged });
+    const od = (old && old.data()) || {};
+    const merged = [...new Set([...(od.customCategories || []), ...cats])];
+    const hidden = [...new Set([...(od.hiddenCategories || []), ...lsGet("mk:hiddenCats", [])])];
+    if (merged.length || hidden.length) batch.set(S.col.doc(SETTINGS_ID), { customCategories: merged, hiddenCategories: hidden });
     await batch.commit();
     lsSet(flag, true);
     if (n) toast(n + (n === 1 ? " opskrift" : " opskrifter") + " fra denne telefon er lagt i den fælles kogebog");
@@ -679,9 +687,15 @@ function openCloudSheet() {
 }
 const SETTINGS_ID = "_indstillinger";
 async function saveCats() {
-  lsSet("mk:cats", S.customCats);
-  if (S.mode === "cloud") S.col.doc(SETTINGS_ID).set({ customCategories: S.customCats }).catch(() => toast("Kategorien kunne ikke gemmes. Prøv igen."));
-  else if (S.mode === "db") { try { await S.col.doc(SETTINGS_ID).set({ customCategories: S.customCats }); } catch { toast("Kategorien kunne ikke gemmes. Prøv igen."); } }
+  lsSet("mk:cats", S.customCats); lsSet("mk:hiddenCats", S.hiddenCats);
+  const body = { customCategories: S.customCats, hiddenCategories: S.hiddenCats };
+  if (S.mode === "cloud") S.col.doc(SETTINGS_ID).set(body).catch(() => toast("Kategorien kunne ikke gemmes. Prøv igen."));
+  else if (S.mode === "db") { try { await S.col.doc(SETTINGS_ID).set(body); } catch { toast("Kategorien kunne ikke gemmes. Prøv igen."); } }
+}
+function readCatSettings(d) {
+  if (Array.isArray(d.customCategories)) S.customCats = d.customCategories.map(String);
+  S.hiddenCats = Array.isArray(d.hiddenCategories) ? d.hiddenCategories.map(String) : [];
+  lsSet("mk:cats", S.customCats); lsSet("mk:hiddenCats", S.hiddenCats);
 }
 function cleanCatName(v) { return String(v || "").replace(/\s+/g, " ").trim().slice(0, 30).replace(/^./, (c) => c.toUpperCase()); }
 async function addCategory(name) {
@@ -689,12 +703,16 @@ async function addCategory(name) {
   if (!n) return null;
   const hit = allCats().find((c) => c.toLowerCase() === n.toLowerCase());
   if (hit) return hit;
+  /* En skjult standardkategori kommer tilbage, hvis man skriver dens navn */
+  const std = CATEGORIES.find((c) => c.toLowerCase() === n.toLowerCase());
+  if (std) { S.hiddenCats = S.hiddenCats.filter((c) => c !== std); await saveCats(); return std; }
   S.customCats = [...S.customCats, n];
   await saveCats();
   return n;
 }
 async function removeCategory(name) {
-  S.customCats = S.customCats.filter((c) => c !== name);
+  if (CATEGORIES.includes(name)) S.hiddenCats = [...new Set([...S.hiddenCats, name])];
+  else S.customCats = S.customCats.filter((c) => c !== name);
   await saveCats();
 }
 async function saveRecipe(r, keepTime) {
@@ -799,7 +817,7 @@ function renderList() {
         <input class="search" id="q" type="search" enterkeyhint="search" placeholder="Søg, fx kylling, ris" value="${esc(S.query)}" aria-label="Søg på ret eller ingredienser" aria-describedby="qh">
         ${terms.length > 1 ? `<p class="hint" id="qh">Viser opskrifter med ${terms.map(esc).join(" + ")} først.</p>` : `<p class="hint" id="qh" hidden>Skriv flere ingredienser adskilt af komma eller mellemrum.</p>`}
       </div>
-      <div class="chips" role="group" aria-label="Kategorier">${cats.map((c) => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${c === S.filter}">${c === "Favoritter" ? "♥ " : ""}${esc(c)}<span class="n">${count(c)}</span></button>`).join("")}<button class="chip add" id="addcat" aria-label="Tilføj eller fjern kategorier">+ Kategori</button></div>
+      <div class="chips" role="group" aria-label="Kategorier">${cats.map((c) => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${c === S.filter}">${c === "Favoritter" ? "♥ " : ""}${esc(c)}<span class="n">${count(c)}</span></button>`).join("")}<button class="chip add" id="addcat" aria-label="Tilføj eller slet kategorier">${ICON.edit} Rediger</button></div>
       ${showingExamples && all.length ? `<p class="hint">Tryk på + nederst for at tilføje din første opskrift. Herunder er to eksempler. Swipe dem væk, når du har set dem.</p>` : ""}
       ${S.mode === "loading" ? `<p class="status">${esc(storageLine())}</p>` : ""}
       <div class="cards">${cardsHtml || (S.mode !== "loading" ? `<p class="hint">${emptyMsg}</p>` : "")}</div>
@@ -854,8 +872,9 @@ function openCatSheet() {
         <span class="grab" aria-hidden="true"></span>
         <h2 id="cst">Kategorier</h2>
         <form class="addcat" id="cf"><input class="input" id="cn" maxlength="30" placeholder="Ny kategori, fx Bagværk" aria-label="Navn på ny kategori" autocomplete="off"><button class="btn primary" type="submit">Tilføj</button></form>
-        ${S.customCats.length ? `<ul class="catlist">${S.customCats.map((c) => `<li><span>${esc(c)}</span><button class="x" data-rm="${esc(c)}" aria-label="Fjern ${esc(c)}">${ICON.trash}</button></li>`).join("")}</ul>`
-          : `<p class="hint">Dine egne kategorier vises her. Morgenmad, Middagsmad, Aftensmad, Desserter og Drinks er der altid.</p>`}
+        ${allCats().length ? `<ul class="catlist">${allCats().map((c) => `<li><span>${esc(c)}</span><button class="x" data-rm="${esc(c)}" aria-label="Slet ${esc(c)}">${ICON.trash}</button></li>`).join("")}</ul>`
+          : `<p class="hint">Du har ingen kategorier. Skriv en ny ovenfor.</p>`}
+        <p class="hint">Når du sletter en kategori, bliver opskrifterne liggende under Alle.${S.hiddenCats.length ? " Skriv navnet på en slettet standardkategori for at få den tilbage." : ""}</p>
         <button class="btn ghost" id="scancel">Færdig</button>
       </div>`;
     const close = () => { $("#sheet").innerHTML = ""; render(); };
@@ -865,7 +884,7 @@ function openCatSheet() {
       const name = b.dataset.rm;
       await removeCategory(name);
       if (S.filter === name) S.filter = "Alle";
-      toast("«" + name + "» er fjernet", "Fortryd", async () => { await addCategory(name); render(); });
+      toast("«" + name + "» er slettet", "Fortryd", async () => { await addCategory(name); render(); });
       draw();
     }));
   };
