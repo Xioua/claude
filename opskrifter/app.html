@@ -110,6 +110,7 @@ main { padding-block: 8px calc(env(safe-area-inset-bottom, 0px) + 120px); }
 .opt span span { color: var(--ink-soft); font-size: .85rem; }
 @keyframes up { from { transform: translateY(100%); } to { transform: none; } }
 
+#cloudbtn[data-on="true"] { color: var(--accent); }
 .fav { width: 44px; height: 44px; border: 0; background: transparent; border-radius: 50%; display: grid; place-items: center; cursor: pointer; color: #b7bcc5; }
 .topbar .fav { background: var(--surface); box-shadow: var(--shadow); }
 .fav svg { width: 22px; height: 22px; }
@@ -195,6 +196,8 @@ textarea.tall { min-height: 220px; }
 .check { display: flex; gap: 10px; align-items: center; font-size: .92rem; }
 .check input { width: 20px; height: 20px; accent-color: var(--accent); }
 .confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: #fff1f0; border-radius: 16px; padding: 10px 12px; }
+.divider { display: flex; align-items: center; gap: 12px; color: var(--ink-soft); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .linkrow { display: flex; gap: 8px; }
 .linkrow .input { flex: 1; min-width: 0; }
 
@@ -229,6 +232,7 @@ const ICON = {
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>',
   heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.5 8.1 3.6 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.6 0 5.7 3.6 4.5 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>',
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>',
+  people: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.4 3.3-5.5 6.5-5.5s5.9 2.1 6.5 5.5"/><circle cx="17" cy="9" r="2.8"/><path d="M16.5 14.6c2.6.1 4.5 2 5 5.4"/></svg>',
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg>',
   link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7"/></svg>',
   sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
@@ -452,6 +456,7 @@ const S = {
   hiddenExamples: lsGet("mk:hiddenExamples", []),
   customCats: lsGet("mk:cats", []),
   sharedRecipe: null,
+  inviteNote: "",
   draft: null            // forudfyldt opskrift fra import
 };
 const sortRecipes = (a) => a.sort((x, y) => (y.updatedAt || 0) - (x.updatedAt || 0));
@@ -462,7 +467,7 @@ function useLocal() {
   render();
 }
 async function initStore() {
-  if (!window.claude || typeof window.claude.use !== "function") return useLocal();
+  if (!IN_CLAUDE) return cloudCfg() ? initCloud() : useLocal();
   const slowTimer = setTimeout(() => { S.slow = true; render(); }, 10000);
   try {
     const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
@@ -485,10 +490,184 @@ async function initStore() {
     });
   } catch { clearTimeout(slowTimer); useLocal(); }
 }
+/* ---------- Fælles kogebog (Firebase Firestore) ---------- */
+/* Opskrifterne ligger i jeres eget Firebase-projekt under kogeboeger/<kode>/opskrifter.
+   Koden er lang og tilfældig og fungerer som adgangskode; den deles kun via invitationslinket.
+   Hver telefon beholder en kopi, så appen også virker uden net. */
+const FB_VERSION = "10.12.2";
+/* Jeres Firebase-projekt. Disse oplysninger er ikke hemmelige; adgangen styres af reglerne i Firestore. */
+const DEFAULT_FIREBASE = {
+  apiKey: "AIzaSyAiWoS5yco_HvqQMgrZZt1crIUjSTKPZow",
+  authDomain: "kogebog-b06b2.firebaseapp.com",
+  projectId: "kogebog-b06b2",
+  storageBucket: "kogebog-b06b2.firebasestorage.app",
+  messagingSenderId: "55052226356",
+  appId: "1:55052226356:web:30452956688a31ccf09f61"
+};
+const cloudCfg = () => lsGet("mk:cloud", null);
+function loadScript(src) {
+  return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("load")); document.head.append(s); });
+}
+async function loadFirebase() {
+  if (window.firebase && window.firebase.firestore) return window.firebase;
+  await loadScript(`https://www.gstatic.com/firebasejs/${FB_VERSION}/firebase-app-compat.js`);
+  await loadScript(`https://www.gstatic.com/firebasejs/${FB_VERSION}/firebase-firestore-compat.js`);
+  return window.firebase;
+}
+/* Læser opsætningen fra Firebase-konsollen: accepterer både JSON og "const firebaseConfig = { apiKey: "…", … }" */
+function parseFirebaseConfig(text) {
+  const out = {};
+  for (const k of ["apiKey", "authDomain", "projectId", "storageBucket", "messagingSenderId", "appId"]) {
+    const m = String(text).match(new RegExp('["\']?' + k + '["\']?\\s*:\\s*["\']([^"\']+)["\']'));
+    if (m) out[k] = m[1];
+  }
+  return out.apiKey && out.projectId && out.appId ? out : null;
+}
+function newBookCode() {
+  const b = new Uint8Array(18); crypto.getRandomValues(b);
+  return "kb-" + b64url(b);
+}
+let cloudUnsub = null;
+async function initCloud() {
+  const c = cloudCfg();
+  S.mode = "loading"; render();
+  const slowTimer = setTimeout(() => { S.slow = true; render(); }, 10000);
+  /* Vis den gemte kopi med det samme, mens skyen svarer */
+  S.recipes = sortRecipes(lsGet("mk:recipes", []));
+  try {
+    const fb = await loadFirebase();
+    const app = fb.apps.find((a) => a.name === "kogebog") || fb.initializeApp(c.config, "kogebog");
+    const fs = app.firestore();
+    if (!initCloud.persist) { initCloud.persist = true; try { await fs.enablePersistence({ synchronizeTabs: true }); } catch {} }
+    S.col = fs.collection("kogeboeger").doc(c.code).collection("opskrifter");
+    if (cloudUnsub) cloudUnsub();
+    cloudUnsub = S.col.onSnapshot({ includeMetadataChanges: false }, (snap) => {
+      if (!snap.metadata.fromCache) { clearTimeout(slowTimer); S.slow = false; }
+      S.mode = "cloud";
+      const settings = snap.docs.find((d) => d.id === SETTINGS_ID);
+      if (settings && Array.isArray(settings.data().customCategories)) { S.customCats = settings.data().customCategories.map(String); lsSet("mk:cats", S.customCats); }
+      S.recipes = sortRecipes(snap.docs.filter((d) => d.id !== SETTINGS_ID).map((d) => ({ ...d.data(), id: d.id })));
+      lsSet("mk:recipes", S.recipes);
+      const v = route().view;
+      if (v !== "edit" && v !== "import") render();
+    }, (e) => {
+      clearTimeout(slowTimer); S.slow = false;
+      S.mode = "local"; S.col = null; render();
+      toast(e && e.code === "permission-denied" ? "Firebase afviser adgang. Tjek reglerne i Firebase (trin 4 i vejledningen)." : "Den fælles kogebog kan ikke nås lige nu. Du ser din gemte kopi.");
+    });
+    await uploadLocalOnce(c.code);
+  } catch {
+    clearTimeout(slowTimer); S.slow = false;
+    S.mode = "local"; S.col = null; render();
+    toast("Den fælles kogebog kan ikke nås lige nu. Du ser din gemte kopi.");
+  }
+}
+/* Første gang en telefon kobles på, lægges dens egne opskrifter op i den fælles kogebog */
+async function uploadLocalOnce(code) {
+  const flag = "mk:uploaded:" + code;
+  if (lsGet(flag, false)) return;
+  const mine = lsGet("mk:recipes", []);
+  const cats = lsGet("mk:cats", []);
+  try {
+    const existing = await S.col.get();
+    const ids = new Set(existing.docs.map((d) => d.id));
+    const batch = S.col.firestore.batch();
+    let n = 0;
+    for (const r of mine) if (r && r.id && !ids.has(r.id)) { batch.set(S.col.doc(r.id), JSON.parse(JSON.stringify(r))); n++; }
+    const old = existing.docs.find((d) => d.id === SETTINGS_ID);
+    const merged = [...new Set([...((old && old.data().customCategories) || []), ...cats])];
+    if (merged.length) batch.set(S.col.doc(SETTINGS_ID), { customCategories: merged });
+    await batch.commit();
+    lsSet(flag, true);
+    if (n) toast(n + (n === 1 ? " opskrift" : " opskrifter") + " fra denne telefon er lagt i den fælles kogebog");
+  } catch {}
+}
+async function startCloud(config, code) {
+  lsSet("mk:cloud", { config, code });
+  await initCloud();
+}
+function leaveCloud() {
+  if (cloudUnsub) { cloudUnsub(); cloudUnsub = null; }
+  try { localStorage.removeItem("mk:cloud"); } catch {}
+  S.col = null; useLocal();
+}
+async function inviteLink() {
+  const c = cloudCfg();
+  const bytes = new TextEncoder().encode(JSON.stringify({ c: c.config, k: c.code }));
+  return APP_URL + "?kogebog=" + b64url(bytes);
+}
+function readInvite(param) {
+  const d = JSON.parse(new TextDecoder().decode(unb64url(param)));
+  if (!d || !d.k || !/^kb-[A-Za-z0-9_-]{20,}$/.test(d.k) || !parseFirebaseConfig(JSON.stringify(d.c))) throw 0;
+  return { config: parseFirebaseConfig(JSON.stringify(d.c)), code: d.k };
+}
+
+function openCloudSheet() {
+  const c = cloudCfg();
+  const on = !!c;
+  $("#sheet").innerHTML = `<div class="sheet-bg" id="sbg"></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="clt">
+      <span class="grab" aria-hidden="true"></span>
+      <h2 id="clt">Fælles kogebog</h2>
+      ${on ? `
+        <p class="note">${S.mode === "cloud" ? "I deler kogebog. Nye opskrifter, ændringer og favoritter kommer frem på begge telefoner med det samme." : "Kogebogen er sat op, men kan ikke nås lige nu. Du ser din gemte kopi."}</p>
+        <button class="btn primary" id="invite">${ICON.share} Inviter din kæreste</button>
+        <p class="hint">Send linket, og bed din kæreste åbne det i Safari og derefter føje appen til hjemmeskærmen. Alle med linket kan se og ændre kogebogen, så send det kun til hende eller ham.</p>
+        <div id="leavebox"><button class="btn ghost danger" id="leave">Forlad fælles kogebog</button></div>
+      ` : `
+        <p class="note">Del kogebogen med din kæreste, så I ser de samme opskrifter på begge telefoner.</p>
+        <div class="field">
+          <label for="invl">Har du fået et invitationslink?</label>
+          <div class="linkrow"><input class="input" id="invl" type="url" inputmode="url" autocomplete="off" placeholder="Sæt linket ind her"><button class="btn primary" id="join" type="button">Deltag</button></div>
+        </div>
+        <p class="note err" id="joinerr" hidden></p>
+        ${DEFAULT_FIREBASE ? `
+        <div class="divider">eller</div>
+        <p class="hint">Er I ikke kommet i gang endnu? Så opret kogebogen her, og inviter derefter din kæreste.</p>
+        ` : `<p class="hint" style="margin-top:6px"><b>Første gang</b>, før I har en fælles kogebog, opretter den ene af jer et gratis Firebase-projekt og sætter opsætningen ind her. Vejledningen ligger i appens README på GitHub.</p>`}
+        <div class="field" ${DEFAULT_FIREBASE ? "hidden" : ""}>
+          <label for="fbc">Firebase-opsætning</label>
+          <span class="hint">Indsæt teksten fra Firebase, der starter med <b>const firebaseConfig</b>.</span>
+          <textarea class="input" id="fbc" placeholder="const firebaseConfig = {&#10;  apiKey: &quot;…&quot;,&#10;  projectId: &quot;…&quot;,&#10;  appId: &quot;…&quot;&#10;};"></textarea>
+        </div>
+        <p class="note err" id="fberr" hidden></p>
+        <button class="btn primary" id="create">Opret fælles kogebog</button>
+      `}
+      <button class="btn ghost" id="scancel">Luk</button>
+    </div>`;
+  const close = () => { $("#sheet").innerHTML = ""; render(); };
+  $("#sbg").onclick = close; $("#scancel").onclick = close;
+  if ($("#invite")) $("#invite").onclick = async () => shareLink({ title: "Vores kogebog", text: "Kom med i vores fælles kogebog: Åbn linket i Safari, tryk Del og vælg «Føj til hjemmeskærm». Åbn så appen, tryk på personikonet øverst, og sæt dette link ind.", url: await inviteLink() });
+  if ($("#leave")) $("#leave").onclick = () => {
+    $("#leavebox").innerHTML = `<div class="confirm"><span>Opskrifterne bliver liggende på denne telefon, men synkroniseres ikke længere.</span><button class="btn danger" id="leaveyes">Forlad</button><button class="btn ghost" id="leaveno">Annullér</button></div>`;
+    $("#leaveno").onclick = openCloudSheet;
+    $("#leaveyes").onclick = () => { leaveCloud(); $("#sheet").innerHTML = ""; toast("Du har forladt den fælles kogebog"); render(); };
+  };
+  if ($("#join")) $("#join").onclick = async () => {
+    const v = $("#invl").value.trim();
+    const m = v.match(/[?&]kogebog=([A-Za-z0-9_-]+)/);
+    try {
+      if (!m) throw 0;
+      const { config, code } = readInvite(m[1]);
+      $("#join").disabled = true;
+      await startCloud(config, code);
+      $("#sheet").innerHTML = ""; S.inviteNote = ""; toast("Du er nu med i den fælles kogebog"); render();
+    } catch { const e = $("#joinerr"); e.textContent = "Det er ikke et gyldigt invitationslink. Kopiér hele linket fra beskeden."; e.hidden = false; }
+  };
+  if ($("#create")) $("#create").onclick = async () => {
+    const cfg = DEFAULT_FIREBASE || parseFirebaseConfig($("#fbc").value);
+    const err = $("#fberr");
+    if (!cfg) { err.textContent = "Jeg kan ikke finde apiKey, projectId og appId i teksten. Kopiér hele blokken fra Firebase."; err.hidden = false; return; }
+    $("#create").disabled = true; $("#create").innerHTML = `<span class="spin" aria-hidden="true"></span> Opretter…`;
+    await startCloud(cfg, newBookCode());
+    openCloudSheet();
+  };
+}
 const SETTINGS_ID = "_indstillinger";
 async function saveCats() {
   lsSet("mk:cats", S.customCats);
-  if (S.mode === "db") { try { await S.col.doc(SETTINGS_ID).set({ customCategories: S.customCats }); } catch { toast("Kategorien kunne ikke gemmes. Prøv igen."); } }
+  if (S.mode === "cloud") S.col.doc(SETTINGS_ID).set({ customCategories: S.customCats }).catch(() => toast("Kategorien kunne ikke gemmes. Prøv igen."));
+  else if (S.mode === "db") { try { await S.col.doc(SETTINGS_ID).set({ customCategories: S.customCats }); } catch { toast("Kategorien kunne ikke gemmes. Prøv igen."); } }
 }
 function cleanCatName(v) { return String(v || "").replace(/\s+/g, " ").trim().slice(0, 30).replace(/^./, (c) => c.toUpperCase()); }
 async function addCategory(name) {
@@ -507,8 +686,11 @@ async function removeCategory(name) {
 async function saveRecipe(r, keepTime) {
   if (!keepTime || !r.updatedAt) r.updatedAt = Date.now();
   if (!r.createdAt) r.createdAt = r.updatedAt;
-  const clean = JSON.parse(JSON.stringify(r)); delete clean.example;
-  if (S.mode === "db") {
+  const clean = JSON.parse(JSON.stringify(r)); delete clean.example; delete clean.shared;
+  if (S.mode === "cloud") {
+    /* Firestore viser ændringen med det samme og sender den, når der er net */
+    S.col.doc(clean.id).set(clean).catch(() => toast("Opskriften kunne ikke gemmes i den fælles kogebog."));
+  } else if (S.mode === "db") {
     try { await S.col.doc(clean.id).set(clean); }
     catch (e) {
       if (e && e.code === "quota_exceeded") { toast("Kogebogen er fuld. Slet en opskrift og prøv igen."); return false; }
@@ -522,7 +704,8 @@ async function saveRecipe(r, keepTime) {
   return true;
 }
 async function deleteRecipe(id) {
-  if (S.mode === "db") { try { await S.col.doc(id).delete(); } catch { toast("Kunne ikke slette. Prøv igen."); return false; } }
+  if (S.mode === "cloud") { S.col.doc(id).delete().catch(() => toast("Kunne ikke slette. Prøv igen.")); S.recipes = S.recipes.filter((x) => x.id !== id); }
+  else if (S.mode === "db") { try { await S.col.doc(id).delete(); } catch { toast("Kunne ikke slette. Prøv igen."); return false; } }
   else { S.recipes = S.recipes.filter((x) => x.id !== id); lsSet("mk:recipes", S.recipes); }
   return true;
 }
@@ -566,13 +749,14 @@ function backBtn(to) { return `<a class="btn icon ghost" href="#${to || ""}" ari
 function storageLine() {
   if (S.mode === "loading") return S.slow ? "Kogebogen svarer ikke endnu. Tjek din forbindelse." : "Henter dine opskrifter…";
   if (S.mode === "db") return "Gemt på din konto, så du kan se dem på alle dine enheder.";
+  if (S.mode === "cloud") return "Fælles kogebog. I ser de samme opskrifter på begge telefoner.";
   return "Gemt på denne enhed.";
 }
 
 function renderList() {
   const all = visibleRecipes();
   const showingExamples = !S.recipes.length && S.mode !== "loading";
-  setTop(`<div class="brand big">Min Kogebog</div>${IN_CLAUDE ? "" : `<button class="btn icon" id="shareapp" aria-label="Del appen" title="Del appen">${ICON.share}</button>`}`);
+  setTop(`<div class="brand big">${S.mode === "cloud" ? "Vores Kogebog" : "Min Kogebog"}</div>${IN_CLAUDE ? "" : `<button class="btn icon" id="cloudbtn" aria-label="Fælles kogebog" title="Fælles kogebog" data-on="${S.mode === "cloud"}">${ICON.people}</button><button class="btn icon" id="shareapp" aria-label="Del appen" title="Del appen">${ICON.share}</button>`}`);
   const cats = ["Alle", "Favoritter", ...allCats()];
   if (!cats.includes(S.filter)) S.filter = "Alle";
   const inCat = (r, c) => c === "Alle" || (c === "Favoritter" ? !!r.favorite : normCategory(r.category) === c);
@@ -591,8 +775,14 @@ function renderList() {
     : "Tryk på + nederst for at tilføje din første opskrift.";
   $("#main").innerHTML = `
     <div class="stack">
+      ${S.inviteNote ? `<div class="note" style="display:flex;flex-direction:column;gap:10px">
+        <b style="color:var(--ink)">Du er med i den fælles kogebog</b>
+        <span>Sådan får du den som app på iPhone:</span>
+        <span>1. Tryk på Del-knappen i Safari og vælg «Føj til hjemmeskærm».<br>2. Åbn appen fra hjemmeskærmen, tryk på personikonet øverst, og sæt invitationslinket ind.</span>
+        <div class="row"><button class="btn primary" id="copyinv">${ICON.copy} Kopiér invitationslink</button></div>
+      </div>` : ""}
       <div class="search-wrap">
-        <input class="search" id="q" type="search" enterkeyhint="search" placeholder="Søg på ret eller ingredienser, fx kylling, ris" value="${esc(S.query)}" aria-label="Søg på ret eller ingredienser" aria-describedby="qh">
+        <input class="search" id="q" type="search" enterkeyhint="search" placeholder="Søg, fx kylling, ris" value="${esc(S.query)}" aria-label="Søg på ret eller ingredienser" aria-describedby="qh">
         ${terms.length > 1 ? `<p class="hint" id="qh">Viser opskrifter med ${terms.map(esc).join(" + ")} først.</p>` : `<p class="hint" id="qh" hidden>Skriv flere ingredienser adskilt af komma eller mellemrum.</p>`}
       </div>
       <div class="chips" role="group" aria-label="Kategorier">${cats.map((c) => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${c === S.filter}">${c === "Favoritter" ? "♥ " : ""}${esc(c)}<span class="n">${count(c)}</span></button>`).join("")}<button class="chip add" id="addcat" aria-label="Tilføj eller fjern kategorier">+ Kategori</button></div>
@@ -600,12 +790,17 @@ function renderList() {
       ${S.mode === "loading" ? `<p class="status">${esc(storageLine())}</p>` : ""}
       <div class="cards">${cardsHtml || (S.mode !== "loading" ? `<p class="hint">${emptyMsg}</p>` : "")}</div>
       ${S.recipes.length ? `<p class="hint">Swipe en opskrift fra højre mod venstre for at slette den.</p>` : ""}
+      ${S.mode === "cloud" ? `<p class="hint">${esc(storageLine())}</p>` : ""}
     </div>`;
   const qi = $("#q");
   qi.addEventListener("input", () => { S.query = qi.value; const pos = qi.selectionStart; renderList(); const n = $("#q"); n.focus(); try { n.setSelectionRange(pos, pos); } catch {} });
   $("#main").querySelectorAll("[data-cat]").forEach((b) => b.addEventListener("click", () => { S.filter = b.dataset.cat; renderList(); }));
   $("#main").querySelectorAll(".card").forEach(bindCard);
   $("#addcat").onclick = openCatSheet;
+  if ($("#cloudbtn")) $("#cloudbtn").onclick = openCloudSheet;
+  if ($("#copyinv")) $("#copyinv").onclick = async () => {
+    try { await navigator.clipboard.writeText(S.inviteNote); toast("Linket er kopieret"); } catch { toast("Tryk og hold på linket i beskeden for at kopiere det"); }
+  };
   if ($("#shareapp")) $("#shareapp").onclick = () => shareLink({ title: "Min Kogebog", text: "Prøv Min Kogebog. Gem opskrifter fra nettet, og skalér dem til det antal, du laver mad til.", url: APP_URL });
   setFab(`<button class="plus" id="plus" aria-label="Tilføj opskrift" aria-haspopup="dialog" aria-expanded="false">${ICON.plus}</button>`);
   $("#plus").onclick = openAddSheet;
@@ -756,7 +951,7 @@ async function toggleFavorite(id) {
   const r = S.recipes.find((x) => x.id === id);
   if (!r) return;
   const next = { ...JSON.parse(JSON.stringify(r)), favorite: !r.favorite };
-  if (S.mode === "db") { Object.assign(r, { favorite: next.favorite }); render(); }
+  if (S.mode === "db" || S.mode === "cloud") { Object.assign(r, { favorite: next.favorite }); render(); }
   if (await saveRecipe(next, true)) { toast(next.favorite ? "Tilføjet til favoritter" : "Fjernet fra favoritter"); render(); }
 }
 
@@ -1398,6 +1593,20 @@ function renderImport() {
 }
 
 /* ---------- Start ---------- */
+/* Invitation til fælles kogebog: ?kogebog=… */
+try {
+  const inv = new URLSearchParams(location.search).get("kogebog");
+  if (inv && !IN_CLAUDE) {
+    history.replaceState(null, "", location.pathname);
+    try {
+      const { config, code } = readInvite(inv);
+      lsSet("mk:cloud", { config, code });
+      const standalone = navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+      if (!standalone) S.inviteNote = location.origin + location.pathname + "?kogebog=" + inv;
+      else setTimeout(() => toast("Du er nu med i den fælles kogebog"), 600);
+    } catch { setTimeout(() => toast("Invitationslinket er ugyldigt. Bed om et nyt."), 600); }
+  }
+} catch {}
 /* Delt opskrift: ?r=… */
 try {
   const code = new URLSearchParams(location.search).get("r");
