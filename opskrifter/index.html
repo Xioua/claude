@@ -157,7 +157,10 @@ main { padding-block: 8px calc(env(safe-area-inset-bottom, 0px) + 120px); }
 .shoppick .qty { font-weight: 700; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .shoppick .havelbl { font-size: .75rem; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 2px 8px; }
 .shoppick .havelbl:empty { display: none; }
-.ings.shop li { grid-template-columns: 26px minmax(60px, auto) 1fr 36px; }
+.ings.shop li { grid-template-columns: 26px minmax(56px, auto) 1fr auto 32px; align-items: center; }
+.aisle { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); margin: 14px 0 0; }
+.panel h2 + .aisle { margin-top: 4px; }
+.offer { font-size: .72rem; font-weight: 700; color: var(--warm); background: #fff1ec; border-radius: 999px; padding: 4px 9px; text-decoration: none; white-space: nowrap; }
 .ings.shop small { display: block; color: var(--ink-soft); font-size: .75rem; }
 .ings.shop .x { width: 36px; height: 36px; border: 0; background: transparent; color: var(--ink-soft); font-size: 1.4rem; line-height: 1; cursor: pointer; border-radius: 50%; }
 .panel h2 .n { font-size: .85rem; color: var(--ink-soft); font-weight: 600; margin-left: 4px; }
@@ -872,6 +875,22 @@ function openShopSheet(r, factor, cur) {
   draw();
 }
 
+/* Afdelinger i den rækkefølge, man typisk går gennem et dansk supermarked */
+const AISLES = ["Frugt & grønt", "Brød & bagværk", "Kød & fisk", "Mejeri & æg", "Kolonial", "Frost", "Drikkevarer", "Husholdning", "Andet"];
+const AISLE_RULES = [
+  ["Kolonial", /(dåse|hakkede tomater|flåede|passata|tomatpur|koncentrat|kokosmælk|bouillon|fond\b|lasagneplader|tortillachips)/],
+  ["Frost", /(frossen|frosne|frost|\bis\b|isterning)/],
+  ["Kød & fisk", /(kød|okse|svin|kylling|kalkun|\blam|bacon|skinke|pølse|medister|frikadelle|fars\b|laks|torsk|rødspætte|sej\b|rejer|\btun\b|makrel|sild|fisk|\band\b|andebryst|entrecote|mørbrad|culotte|bøf|kotelet|steak|chorizo|salami|pepperoni)/],
+  ["Mejeri & æg", /(mælk|fløde|smør|\bost\b|ost$|parmesan|mozzarella|feta|cheddar|yoghurt|skyr|creme fra[iî]che|cremefraiche|kærnemælk|^æg|\bæg\b|ægge|mascarpone|ricotta|hytteost|flødeost|smøreost|philadelphia|halloumi)/],
+  ["Frugt & grønt", /(grøntsag|frugt|løg|hvidløg|kartof|gulerod|gulerød|tomat|salat|agurk|peberfrugt|squash|aubergine|broccoli|blomkål|spinat|kål|porre|selleri|champignon|svamp|ingefær|chili|citron|lime|æble|pære|banan|appelsin|bær|avocado|mango|ananas|melon|drue|basilikum|persille|koriander|dild|purløg|timian|rosmarin|mynte|krydderurt|ærter|majs|rødbede|pastinak|asparges|bladselleri|radise|fennikel|grønkål|rucola|forårsløg|skalotte|kiwi|granatæble|blommer\b|fersken|nektarin)/],
+  ["Brød & bagværk", /(brød|bolle|rundstykke|tortilla|pita|\bwraps?\b|toast|baguette|flute|burgerbolle|naan|croissant|kiks)/],
+  ["Drikkevarer", /(\bvin\b|rødvin|hvidvin|øl\b|juice|saft|sodavand|danskvand|\brom\b|vodka|\bgin\b|tonic|cola|kaffe|\bte\b|whisky|likør|prosecco|cava|champagne)/],
+  ["Husholdning", /(bagepapir|folie|film|køkkenrulle|servietter|opvask|poser|sugerør|tandstik|grillspyd)/],
+  ["Kolonial", /(mel\b|hvedemel|rugmel|grahamsmel|sukker|gær|bagepulver|natron|pasta|spaghetti|penne|fusilli|\bris\b|grødris|nudler|olie|eddike|krydderi|karry|paprika|spidskommen|kanel|vanilje|salt|peber|honning|sirup|soja|ketchup|sennep|mayo|kakao|chokolade|nødder|mandler|hasselnød|valnød|havregryn|müsli|granola|bønner|linser|kikærter|rosiner|tørret|tacokrydderi|oregano|laurbær|muskat|kardemomme|stivelse|maizena|kapers|oliven|pesto|sambal|sriracha|tahin|peanut|jordnød)/]
+];
+const aisleOf = (name) => { const n = String(name || "").toLowerCase(); for (const [a, re] of AISLE_RULES) if (re.test(n)) return a; return "Andet"; };
+const offerUrl = (name) => "https://etilbudsavis.dk/soeg?q=" + encodeURIComponent(String(name || "").split(",")[0].trim());
+
 /* Selve indkøbssedlen */
 function renderShop() {
   setTop(`${backBtn()}<div class="brand">Indkøbsseddel</div>${S.shop.length ? `<button class="btn icon" id="shopshare" aria-label="Del indkøbssedlen">${ICON.share}</button>` : ""}`);
@@ -881,13 +900,17 @@ function renderShop() {
       <span class="box" aria-hidden="true"></span>
       <span class="qty">${esc(shopQty(x))}</span>
       <span class="name">${esc(x.name)}${x.from.length ? `<small>${esc(x.from.join(", "))}</small>` : ""}</span>
+      ${x.done ? "<span></span>" : `<a class="offer" href="${esc(offerUrl(x.name))}" target="_blank" rel="noopener" aria-label="Se tilbud på ${esc(x.name)} hos eTilbudsavis">Tilbud</a>`}
       <button class="x" data-rmitem="${esc(x.id)}" aria-label="Fjern ${esc(x.name)}">×</button>
     </li>`;
   $("#main").innerHTML = `
     <div class="stack">
       <form class="addcat" id="shopadd"><input class="input" id="shopin" placeholder="Tilføj vare, fx 1 l mælk" aria-label="Tilføj vare" autocomplete="off"><button class="btn primary" type="submit">Tilføj</button></form>
       ${S.shop.length ? "" : `<p class="hint">Sedlen er tom. Åbn en opskrift og tryk «Indkøbsseddel», eller skriv en vare ovenfor.</p>`}
-      ${todo.length ? `<section class="panel"><h2>Skal købes <span class="n">${todo.length}</span></h2><ul class="ings shop">${todo.map(row).join("")}</ul></section>` : ""}
+      ${todo.length ? `<section class="panel"><h2>Skal købes <span class="n">${todo.length}</span></h2>${AISLES.map((a) => {
+        const items = todo.filter((x) => aisleOf(x.name) === a);
+        return items.length ? `<h3 class="aisle">${esc(a)}</h3><ul class="ings shop">${items.map(row).join("")}</ul>` : "";
+      }).join("")}</section>` : ""}
       ${done.length ? `<section class="panel"><h2>I kurven <span class="n">${done.length}</span></h2><ul class="ings shop">${done.map(row).join("")}</ul></section>` : ""}
       ${S.shop.length ? `<div class="row">${done.length ? `<button class="btn" id="cleardone">Ryd det i kurven</button>` : ""}<button class="btn danger" id="clearall">Ryd hele sedlen</button></div>` : ""}
       ${S.mode === "cloud" ? `<p class="hint">Sedlen er fælles, så I kan handle ind hver for sig og se, hvad den anden har lagt i kurven.</p>` : ""}
@@ -900,7 +923,7 @@ function renderShop() {
     addToShop([ing], ""); renderShop(); $("#shopin").focus();
   };
   $("#main").querySelectorAll("[data-item]").forEach((li) => (li.onclick = (e) => {
-    if (e.target.closest("[data-rmitem]")) return;
+    if (e.target.closest("[data-rmitem], .offer")) return;
     const x = S.shop.find((y) => y.id === li.dataset.item); if (!x) return;
     x.done = !x.done; saveShop(); renderShop();
   }));
@@ -917,7 +940,10 @@ function renderShop() {
   if ($("#cleardone")) $("#cleardone").onclick = () => clear((x) => !x.done, "Kurven er ryddet");
   if ($("#clearall")) $("#clearall").onclick = () => clear(() => false, "Sedlen er ryddet");
   if ($("#shopshare")) $("#shopshare").onclick = async () => {
-    const text = "Indkøbsseddel\n" + todo.map((x) => "- " + [shopQty(x), x.name].filter(Boolean).join(" ")).join("\n");
+    const text = "Indkøbsseddel\n" + AISLES.map((a) => {
+      const items = todo.filter((x) => aisleOf(x.name) === a);
+      return items.length ? "\n" + a + "\n" + items.map((x) => "- " + [shopQty(x), x.name].filter(Boolean).join(" ")).join("\n") : "";
+    }).join("");
     if (navigator.share) { try { await navigator.share({ title: "Indkøbsseddel", text }); return; } catch (e) { if (e && e.name === "AbortError") return; } }
     try { await navigator.clipboard.writeText(text); toast("Sedlen er kopieret. Sæt den ind i en besked eller Noter."); } catch { toast("Sedlen kunne ikke kopieres"); }
   };
