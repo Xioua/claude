@@ -151,6 +151,34 @@ main { padding-block: 8px calc(env(safe-area-inset-bottom, 0px) + 120px); }
 .ings.shop .x { width: 36px; height: 36px; border: 0; background: transparent; color: var(--ink-soft); font-size: 1.4rem; line-height: 1; cursor: pointer; border-radius: 50%; }
 .panel h2 .n { font-size: .85rem; color: var(--ink-soft); font-weight: 600; margin-left: 4px; }
 
+.sum { background: linear-gradient(135deg, var(--accent-soft), #f2fbf6); border-radius: 24px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.sum > b { font-size: 1.02rem; }
+.sum .big { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; color: var(--c-aften-ink); }
+.sum .best { display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 16px; padding: 10px 12px; box-shadow: var(--shadow); font-size: .88rem; }
+.sum .best small { color: var(--ink-soft); }
+.sum .medal { color: #e5a400; font-size: 1.2rem; }
+.sum .storechips .chip { background: var(--surface); box-shadow: var(--shadow); }
+.sum .storechips .chip[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.sum .hint { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font-weight: 700; cursor: pointer; text-decoration: underline; font-size: inherit; }
+.dealbox { display: block; }
+.dealbox:empty { display: none; }
+.deal { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 5px; border: 0; background: none; padding: 0; text-align: left; cursor: pointer; font-size: .78rem; font-weight: 600; color: var(--c-aften-ink); }
+.chain { font-size: .66rem; font-weight: 800; border-radius: 6px; padding: 2px 6px; letter-spacing: .02em; white-space: nowrap; }
+.deal s { color: var(--ink-soft); font-weight: 500; }
+.deal .save { background: var(--accent-soft); border-radius: 999px; padding: 1px 7px; }
+.deal .more { color: var(--ink-soft); font-weight: 700; }
+.alts { list-style: none; margin: 8px 0 2px; padding: 8px; background: var(--bg); border-radius: 12px; display: flex; flex-direction: column; gap: 6px; font-size: .8rem; }
+.alts li { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.alts .at { flex: 1; min-width: 0; }
+.alts .till { color: var(--ink-soft); }
+
+.photo { width: 100%; aspect-ratio: 4 / 3; max-height: 260px; border-radius: 20px; overflow: hidden; background: var(--surface); box-shadow: var(--shadow); display: grid; place-items: center; }
+.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo .ph { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--ink-soft); font-size: .88rem; }
+.photo .ph svg { width: 32px; height: 32px; }
+label.btn { cursor: pointer; }
+
 /* Opskrift */
 .recipe-head { display: flex; flex-direction: column; gap: 10px; }
 .recipe-head h1 { font-size: clamp(1.9rem, 8vw, 2.7rem); font-weight: 800; letter-spacing: -0.035em; }
@@ -252,6 +280,7 @@ const ICON = {
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>',
   heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.5 8.1 3.6 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.6 0 5.7 3.6 4.5 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>',
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>',
+  camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>',
   cart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11.2a2 2 0 002 1.6h7.7a2 2 0 002-1.5L21 8H6.2"/><circle cx="10" cy="20.5" r="1.3"/><circle cx="17" cy="20.5" r="1.3"/></svg>',
   people: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.4 3.3-5.5 6.5-5.5s5.9 2.1 6.5 5.5"/><circle cx="17" cy="9" r="2.8"/><path d="M16.5 14.6c2.6.1 4.5 2 5 5.4"/></svg>',
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg>',
@@ -496,6 +525,8 @@ const S = {
   hiddenCats: lsGet("mk:hiddenCats", []),
   shop: lsGet("mk:shop", []),
   pantry: lsGet("mk:pantry", []),
+  offerPrefs: Object.assign({ lat: null, lng: null, place: "", stores: null }, lsGet("mk:offerPrefs", {})),
+  offers: {}, offerCache: new Map(), offerRun: 0, offerState: "", offerFilter: "Alle", offerOpen: null, offerRoute: null,
   sharedRecipe: null,
   inviteNote: "",
   draft: null            // forudfyldt opskrift fra import
@@ -877,6 +908,215 @@ const AISLE_RULES = [
 const aisleOf = (name) => { const n = String(name || "").toLowerCase(); for (const [a, re] of AISLE_RULES) if (re.test(n)) return a; return "Andet"; };
 const offerUrl = (name) => "https://etilbudsavis.dk/soeg?q=" + encodeURIComponent(String(name || "").split(",")[0].trim());
 
+/* ---------- Tilbud (via eTilbudsavis' uofficielle søgning) ---------- */
+/* Der findes ingen officiel, åben tilbudsadgang fra Rema, Salling Group eller Coop.
+   eTilbudsavis samler alle kædernes aviser; deres søgning kaldes uden nøgle. Den kan ændre sig,
+   så alt her er valgfrit og fejler stille tilbage til et link. */
+const OFFER_STORES = [
+  ["Netto", "netto"], ["Føtex", "føtex|fotex"], ["Bilka", "bilka|bilkatogo"], ["Salling", "salling"],
+  ["REMA 1000", "rema1000|rema"],
+  ["Coop 365", "365discount|coop365|fakta"], ["SuperBrugsen", "superbrugsen"], ["Kvickly", "kvickly"], ["Brugsen", "brugsen|dagligbrugsen|lokalbrugsen"],
+  ["Lidl", "lidl"], ["Meny", "meny"], ["Spar", "spar"], ["Min Købmand", "minkøbmand|minkobmand"], ["Løvbjerg", "løvbjerg"]
+];
+const DEFAULT_STORES = ["Netto", "Føtex", "Bilka", "Salling", "REMA 1000", "Coop 365", "SuperBrugsen", "Kvickly", "Brugsen"];
+const normStore = (s) => String(s || "").toLowerCase().replace(/[^a-zæøå0-9]/g, "");
+const storeLabel = (raw) => { const n = normStore(raw); const hit = OFFER_STORES.find(([, a]) => a.split("|").includes(n)); return hit ? hit[0] : null; };
+/* Groft centrum pr. postnummerområde, hvis Danmarks adresseregister ikke svarer */
+const POST_REGIONS = [[1000, 2999, 55.676, 12.568, "København"], [3000, 3699, 55.93, 12.3, "Nordsjælland"], [3700, 3799, 55.1, 14.7, "Bornholm"], [4000, 4999, 55.45, 11.8, "Sjælland"], [5000, 5999, 55.4, 10.39, "Fyn"], [6000, 6999, 55.47, 9.47, "Sydjylland"], [7000, 7999, 55.95, 9.3, "Midtjylland"], [8000, 8999, 56.16, 10.2, "Østjylland"], [9000, 9999, 57.05, 9.92, "Nordjylland"]];
+async function placeFromPostcode(nr) {
+  try {
+    const d = JSON.parse(await tfetch("https://api.dataforsyningen.dk/postnumre/" + nr, {}, 8000));
+    if (d && Array.isArray(d.visueltcenter)) return { lat: d.visueltcenter[1], lng: d.visueltcenter[0], place: nr + " " + d.navn };
+  } catch {}
+  const r = POST_REGIONS.find(([a, b]) => nr >= a && nr <= b);
+  if (!r) return null;
+  return { lat: r[2], lng: r[3], place: nr + " (" + r[4] + ")" };
+}
+const offerPrefs = () => S.offerPrefs;
+function saveOfferPrefs() { lsSet("mk:offerPrefs", S.offerPrefs); }
+/* Kald direkte; virker det ikke (CORS), så via de samme mellemled som link-import */
+async function fetchJsonAnyRoute(url) {
+  const routes = [
+    (u) => u,
+    (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+    (u) => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u),
+    (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u)
+  ];
+  const order = S.offerRoute != null ? [S.offerRoute, ...routes.keys()].filter((v, i, a) => a.indexOf(v) === i) : [...routes.keys()];
+  for (const i of order) {
+    try { const j = JSON.parse(await tfetch(routes[i](url), {}, 12000)); S.offerRoute = i; return j; } catch {}
+  }
+  throw { code: "offers" };
+}
+const OFFER_TTL = 6 * 3600 * 1000;
+function offerCacheKey(term) { const p = offerPrefs(); return "mk:of:" + p.lat.toFixed(2) + "," + p.lng.toFixed(2) + ":" + term; }
+function pruneOfferCache() {
+  try { for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i); if (k && k.startsWith("mk:of:")) { const v = JSON.parse(localStorage.getItem(k)); if (!v || Date.now() - v.t > 24 * 3600 * 1000) localStorage.removeItem(k); } } } catch {}
+}
+function relevance(title, term) {
+  /* På dansk står hovedordet sidst: "letmælk" er mælk, "mælkechokolade" er chokolade */
+  const t = title.toLowerCase(), st = stem(term);
+  if (term.includes(" ")) return t.includes(term) ? 3 : (term.split(" ").every((w) => t.includes(stem(w))) ? 2 : 0);
+  const words = t.split(/[^a-zæøå0-9]+/).filter(Boolean);
+  let best = 0;
+  for (const w of words) {
+    if (w === term || w === st || stem(w) === st) best = Math.max(best, 3);
+    else if (w.endsWith(term) || w.endsWith(st)) best = Math.max(best, 2);
+  }
+  return best;
+}
+function sizeText(q) {
+  try {
+    const u = q && q.unit && q.unit.symbol, s = q && q.size;
+    if (u && s && s.from) return (s.from === s.to || !s.to ? s.from : s.from + "–" + s.to) + " " + u;
+    const pc = q && q.pieces; if (pc && pc.from > 1) return pc.from + " stk.";
+  } catch {}
+  return "";
+}
+async function searchOffers(term) {
+  const key = offerCacheKey(term);
+  const hit = S.offerCache.get(key) || lsGet(key, null);
+  if (hit && Date.now() - hit.t < OFFER_TTL) { S.offerCache.set(key, hit); return hit.list; }
+  const p = offerPrefs();
+  const url = "https://api.etilbudsavis.dk/v2/offers/search?r_lat=" + p.lat + "&r_lng=" + p.lng + "&r_radius=30000&r_locale=da_DK&api_av=0.3.0&query=" + encodeURIComponent(term) + "&offset=0&limit=40";
+  const raw = await fetchJsonAnyRoute(url);
+  if (!Array.isArray(raw)) throw { code: "offers" };
+  const now = Date.now();
+  const list = raw.map((o) => {
+    const pr = o.pricing || {};
+    return {
+      id: String(o.id || ""), title: String(o.heading || ""), desc: String(o.description || "").slice(0, 140),
+      price: typeof pr.price === "number" ? pr.price : null, pre: typeof pr.pre_price === "number" ? pr.pre_price : null,
+      store: storeLabel(o.branding && o.branding.name), color: (o.branding && /^[0-9a-f]{6}$/i.test(o.branding.color || "") ? "#" + o.branding.color : ""),
+      from: o.run_from || "", till: o.run_till || "", size: sizeText(o.quantity), rel: relevance(String(o.heading || ""), term)
+    };
+  }).filter((o) => o.store && o.price != null && o.rel > 0 && (!o.till || new Date(o.till).getTime() > now) && (!o.from || new Date(o.from).getTime() <= now + 86400000));
+  list.sort((a, b) => b.rel - a.rel || a.price - b.price);
+  const entry = { t: now, list: list.slice(0, 12) };
+  S.offerCache.set(key, entry); lsSet(key, entry);
+  return entry.list;
+}
+const kr = (n) => n.toFixed(2).replace(".", ",").replace(",00", ",-") + (n % 1 === 0 ? "" : " kr");
+const fmtKr = (n) => (n % 1 === 0 ? n + " kr" : n.toFixed(2).replace(".", ",") + " kr");
+const weekday = (iso) => { try { return new Date(iso).toLocaleDateString("da-DK", { weekday: "long" }); } catch { return ""; } };
+function chainStyle(o) {
+  const c = o.color || "#6b7280";
+  const r = parseInt(c.slice(1, 3), 16), g = parseInt(c.slice(3, 5), 16), b = parseInt(c.slice(5, 7), 16);
+  const light = (r * 299 + g * 587 + b * 114) / 1000 > 160;
+  return `background:${c};color:${light ? "#111418" : "#fff"}`;
+}
+/* Henter tilbud for de varer, der står på sedlen, og tegner dem efterhånden som de kommer */
+async function loadOffers(items) {
+  if (IN_CLAUDE || !offerPrefs().lat) return;
+  const terms = [...new Set(items.map((x) => x.k))];
+  const run = ++S.offerRun;
+  S.offerState = "loading"; drawOffers();
+  let ok = 0, fail = 0, i = 0;
+  const worker = async () => {
+    while (i < terms.length) {
+      const t = terms[i++];
+      try { S.offers[t] = await searchOffers(t); ok++; } catch { fail++; }
+      if (run !== S.offerRun) return;
+      drawOffers();
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  if (run !== S.offerRun) return;
+  S.offerState = ok ? "done" : (fail ? "error" : "done");
+  drawOffers();
+}
+function visibleOffers(k) {
+  const all = (S.offers[k] || []).filter((o) => offerPrefs().stores.includes(o.store));
+  return S.offerFilter === "Alle" ? all : all.filter((o) => o.store === S.offerFilter);
+}
+function drawOffers() {
+  const box = $("#offers"); if (!box) return;
+  const todo = S.shop.filter((x) => !x.done);
+  const p = offerPrefs();
+  if (!p.lat) {
+    box.innerHTML = `<b>Se hvad der er på tilbud</b>
+      <span class="hint">Skriv dit postnummer, så viser appen tilbud fra ${esc(p.stores.slice(0, 3).join(", "))} og de andre butikker i nærheden.</span>
+      <form class="addcat" id="pcform"><input class="input" id="pcin" inputmode="numeric" maxlength="4" placeholder="Postnummer" aria-label="Postnummer" autocomplete="postal-code"><button class="btn primary" type="submit">Vis tilbud</button></form>
+      ${navigator.geolocation ? `<button class="btn ghost" id="geobtn" type="button">Brug min placering</button>` : ""}`;
+    bindPlaceForm(box);
+    return;
+  }
+  /* Opsummering */
+  const withDeal = todo.filter((x) => visibleOffers(x.k).length);
+  const saving = withDeal.reduce((sum, x) => { const o = visibleOffers(x.k)[0]; return sum + (o.pre && o.pre > o.price ? o.pre - o.price : 0); }, 0);
+  const perStore = {};
+  for (const x of todo) for (const st of new Set((S.offers[x.k] || []).filter((o) => p.stores.includes(o.store)).map((o) => o.store))) perStore[st] = (perStore[st] || 0) + 1;
+  const ranked = Object.entries(perStore).sort((a, b) => b[1] - a[1]);
+  const loading = S.offerState === "loading";
+  box.innerHTML = `
+    ${S.offerState === "error" ? `<b>Tilbud kunne ikke hentes lige nu</b><span class="hint">eTilbudsavis svarer ikke. Prøv igen senere, eller brug knapperne «Tilbud» ved varerne.</span>`
+      : `<b>${loading && !withDeal.length ? "Finder tilbud…" : `${withDeal.length} af ${todo.length} ${todo.length === 1 ? "vare" : "varer"} er på tilbud lige nu`}</b>
+         ${saving >= 1 ? `<span class="big">Spar ca. ${Math.round(saving)} kr</span>` : ""}
+         ${ranked.length ? `<div class="best"><span class="medal" aria-hidden="true">★</span><span><b>Bedste butik:</b> ${esc(ranked[0][0])} har ${ranked[0][1]} af dine varer på tilbud${ranked.length > 1 ? `<br><small>${ranked.slice(1, 4).map(([s, n]) => esc(s) + " har " + n).join(" · ")}</small>` : ""}</span></div>` : ""}
+         ${ranked.length > 1 ? `<div class="chips storechips">${["Alle", ...ranked.map((r) => r[0])].map((s) => `<button class="chip" data-ofilter="${esc(s)}" aria-pressed="${S.offerFilter === s}">${s === "Alle" ? "Alle butikker" : esc(s)}</button>`).join("")}</div>` : ""}`}
+    <span class="hint">${loading ? `<span class="spin" aria-hidden="true"></span> ` : ""}Tilbud nær ${esc(p.place)} fra eTilbudsavis · <button class="linkbtn" id="offerset" type="button">Skift</button></span>`;
+  box.querySelectorAll("[data-ofilter]").forEach((b) => (b.onclick = () => { S.offerFilter = b.dataset.ofilter; drawOffers(); }));
+  $("#offerset").onclick = openOfferSettings;
+  if (!S.offers[S.offerFilter] && S.offerFilter !== "Alle" && !ranked.some((r) => r[0] === S.offerFilter)) S.offerFilter = "Alle";
+  /* Ved hver vare */
+  for (const x of todo) {
+    const el = document.querySelector(`[data-deal="${CSS.escape(x.id)}"]`); if (!el) continue;
+    const offers = visibleOffers(x.k);
+    const link = document.querySelector(`[data-offerlink="${CSS.escape(x.id)}"]`);
+    if (link) link.hidden = !!offers.length || !S.offers[x.k];
+    if (!offers.length) { el.innerHTML = ""; continue; }
+    const o = offers[0], open = S.offerOpen === x.id;
+    el.innerHTML = `<button class="deal" type="button" aria-expanded="${open}">
+        <span class="chain" style="${chainStyle(o)}">${esc(o.store)}</span>
+        <span class="dp">${esc(fmtKr(o.price))}${o.size ? " / " + esc(o.size) : ""}</span>
+        ${o.pre && o.pre > o.price ? `<s>${esc(fmtKr(o.pre))}</s><span class="save">spar ${esc(fmtKr(Math.round((o.pre - o.price) * 100) / 100))}</span>` : ""}
+        ${offers.length > 1 ? `<span class="more">+${offers.length - 1}</span>` : ""}
+      </button>
+      ${open ? `<ul class="alts">${offers.slice(0, 6).map((a) => `<li><span class="chain" style="${chainStyle(a)}">${esc(a.store)}</span><span class="at">${esc(a.title)}${a.size ? ` <small>${esc(a.size)}</small>` : ""}</span><b>${esc(fmtKr(a.price))}</b>${a.till ? `<small class="till">til ${esc(weekday(a.till))}</small>` : ""}</li>`).join("")}
+        <li><a href="${esc(offerUrl(x.name))}" target="_blank" rel="noopener">Se alle på eTilbudsavis</a></li></ul>` : ""}`;
+    el.querySelector(".deal").onclick = (e) => { e.stopPropagation(); S.offerOpen = open ? null : x.id; drawOffers(); };
+  }
+}
+function bindPlaceForm(root) {
+  const f = root.querySelector("#pcform");
+  if (f) f.onsubmit = async (e) => {
+    e.preventDefault();
+    const nr = parseInt(root.querySelector("#pcin").value, 10);
+    if (!(nr >= 1000 && nr <= 9999)) return toast("Skriv et dansk postnummer med 4 cifre");
+    const place = await placeFromPostcode(nr);
+    if (!place) return toast("Postnummeret blev ikke fundet");
+    Object.assign(S.offerPrefs, place); saveOfferPrefs(); $("#sheet").innerHTML = "";
+    S.offers = {}; renderShop();
+  };
+  const g = root.querySelector("#geobtn");
+  if (g) g.onclick = () => navigator.geolocation.getCurrentPosition(
+    (pos) => { Object.assign(S.offerPrefs, { lat: +pos.coords.latitude.toFixed(3), lng: +pos.coords.longitude.toFixed(3), place: "din placering" }); saveOfferPrefs(); $("#sheet").innerHTML = ""; S.offers = {}; renderShop(); },
+    () => toast("Placeringen kunne ikke bruges. Skriv dit postnummer i stedet."), { timeout: 10000, maximumAge: 3600000 });
+}
+function openOfferSettings() {
+  const p = offerPrefs();
+  $("#sheet").innerHTML = `<div class="sheet-bg" id="sbg"></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ost">
+      <span class="grab" aria-hidden="true"></span>
+      <h2 id="ost">Tilbud</h2>
+      <span class="flabel">Område</span>
+      <p class="hint" style="margin:0">Lige nu: ${esc(p.place || "ikke valgt")}</p>
+      <form class="addcat" id="pcform"><input class="input" id="pcin" inputmode="numeric" maxlength="4" placeholder="Nyt postnummer" aria-label="Postnummer" autocomplete="postal-code"><button class="btn" type="submit">Skift</button></form>
+      ${navigator.geolocation ? `<button class="btn ghost" id="geobtn" type="button">Brug min placering</button>` : ""}
+      <span class="flabel">Butikker</span>
+      <div class="chips multi">${OFFER_STORES.map(([s]) => `<button class="chip" type="button" data-st="${esc(s)}" aria-pressed="${p.stores.includes(s)}">${esc(s)}</button>`).join("")}</div>
+      <button class="btn ghost" id="scancel">Færdig</button>
+    </div>`;
+  const close = () => { $("#sheet").innerHTML = ""; renderShop(); };
+  $("#sbg").onclick = close; $("#scancel").onclick = close;
+  $("#sheet").querySelectorAll("[data-st]").forEach((b) => (b.onclick = () => {
+    const s = b.dataset.st;
+    p.stores = p.stores.includes(s) ? p.stores.filter((x) => x !== s) : [...p.stores, s];
+    saveOfferPrefs(); b.setAttribute("aria-pressed", p.stores.includes(s));
+  }));
+  bindPlaceForm($("#sheet"));
+}
+
 /* Selve indkøbssedlen */
 function renderShop() {
   setTop(`${backBtn()}<div class="brand">Indkøbsseddel</div>${S.shop.length ? `<button class="btn icon" id="shopshare" aria-label="Del indkøbssedlen">${ICON.share}</button>` : ""}`);
@@ -885,13 +1125,14 @@ function renderShop() {
   const row = (x) => `<li data-item="${esc(x.id)}" class="${x.done ? "done" : ""}">
       <span class="box" aria-hidden="true"></span>
       <span class="qty">${esc(shopQty(x))}</span>
-      <span class="name">${esc(x.name)}${x.from.length ? `<small>${esc(x.from.join(", "))}</small>` : ""}</span>
-      ${x.done ? "<span></span>" : `<a class="offer" href="${esc(offerUrl(x.name))}" target="_blank" rel="noopener" aria-label="Se tilbud på ${esc(x.name)} hos eTilbudsavis">Tilbud</a>`}
+      <span class="name">${esc(x.name)}${x.from.length ? `<small>${esc(x.from.join(", "))}</small>` : ""}${x.done || IN_CLAUDE ? "" : `<span class="dealbox" data-deal="${esc(x.id)}"></span>`}</span>
+      ${x.done ? "<span></span>" : `<a class="offer" data-offerlink="${esc(x.id)}" href="${esc(offerUrl(x.name))}" target="_blank" rel="noopener" aria-label="Se tilbud på ${esc(x.name)} hos eTilbudsavis">Tilbud</a>`}
       <button class="x" data-rmitem="${esc(x.id)}" aria-label="Fjern ${esc(x.name)}">×</button>
     </li>`;
   $("#main").innerHTML = `
     <div class="stack">
       <form class="addcat" id="shopadd"><input class="input" id="shopin" placeholder="Tilføj vare, fx 1 l mælk" aria-label="Tilføj vare" autocomplete="off"><button class="btn primary" type="submit">Tilføj</button></form>
+      ${todo.length && !IN_CLAUDE ? `<section class="sum" id="offers" aria-live="polite"></section>` : ""}
       ${S.shop.length ? "" : `<p class="hint">Sedlen er tom. Åbn en opskrift og tryk «Indkøbsseddel», eller skriv en vare ovenfor.</p>`}
       ${todo.length ? `<section class="panel"><h2>Skal købes <span class="n">${todo.length}</span></h2>${AISLES.map((a) => {
         const items = todo.filter((x) => aisleOf(x.name) === a);
@@ -909,7 +1150,7 @@ function renderShop() {
     addToShop([ing], ""); renderShop(); $("#shopin").focus();
   };
   $("#main").querySelectorAll("[data-item]").forEach((li) => (li.onclick = (e) => {
-    if (e.target.closest("[data-rmitem], .offer")) return;
+    if (e.target.closest("[data-rmitem], .offer, .dealbox")) return;
     const x = S.shop.find((y) => y.id === li.dataset.item); if (!x) return;
     x.done = !x.done; saveShop(); renderShop();
   }));
@@ -925,6 +1166,7 @@ function renderShop() {
   };
   if ($("#cleardone")) $("#cleardone").onclick = () => clear((x) => !x.done, "Kurven er ryddet");
   if ($("#clearall")) $("#clearall").onclick = () => clear(() => false, "Sedlen er ryddet");
+  if ($("#offers")) { drawOffers(); const missing = todo.filter((x) => !S.offers[x.k]); if (missing.length) loadOffers(missing); }
   if ($("#shopshare")) $("#shopshare").onclick = async () => {
     const text = "Indkøbsseddel\n" + AISLES.map((a) => {
       const items = todo.filter((x) => aisleOf(x.name) === a);
@@ -1079,7 +1321,7 @@ function openCatSheet() {
 function cardHtml(r, m) {
   const letter = (r.title || "?").trim().charAt(0).toUpperCase();
   const cat = normCategory(r.category);
-  const img = r.image && !IN_CLAUDE;
+  const img = showImage(r.image);
   return `<div class="swipe" data-id="${esc(r.id)}">
   <button class="under" data-del="${esc(r.id)}" tabindex="-1" aria-label="Slet ${esc(r.title)}">${ICON.trash}<span>Slet</span></button>
   <div class="card" role="link" tabindex="0" data-open="${esc(r.id)}" aria-label="${esc(r.title)}">
@@ -1217,7 +1459,7 @@ function renderRecipe(id) {
   $("#main").innerHTML = `
     <div class="stack">
       <div class="recipe-head">
-        ${r.image && !IN_CLAUDE ? `<img class="hero" src="${esc(r.image)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}
+        ${showImage(r.image) ? `<img class="hero" src="${esc(r.image)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}
         ${r.shared ? `<span class="tag">Delt med dig</span>` : ""}
         ${r.example ? `<span class="tag">Eksempel</span>` : (normCategory(r.category) ? `<span class="pill-cat" data-ci="${catIndex(normCategory(r.category))}">${esc(normCategory(r.category))}</span>` : "")}
         <h1>${esc(r.title)}</h1>
@@ -1302,13 +1544,31 @@ function renderRecipe(id) {
     $("#yes").onclick = async () => { if (await deleteRecipe(r.id)) { toast("Opskriften er slettet"); go(""); } };
   };
 }
+/* ---------- Billeder ---------- */
+/* Eksterne billeder kan ikke vises på claude.ai; egne billeder gemmes som data-URL og kan vises overalt */
+const showImage = (src) => !!src && (src.startsWith("data:image/") || !IN_CLAUDE);
+/* Gør billedet mindre (maks. 900 px, JPEG), så det fylder ca. 60-150 KB og kan gemmes i kogebogen */
+async function shrinkImage(file, max = 900, quality = 0.72) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.round(img.naturalWidth * scale), h = Math.round(img.naturalHeight * scale);
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    c.getContext("2d").drawImage(img, 0, 0, w, h);
+    let q = quality, out = c.toDataURL("image/jpeg", q);
+    while (out.length > 180000 && q > 0.4) { q -= 0.1; out = c.toDataURL("image/jpeg", q); }
+    return out;
+  } finally { URL.revokeObjectURL(url); }
+}
+
 /* ---------- Deling ---------- */
 /* En delt opskrift pakkes komprimeret ind i linket (?r=…), så den kan åbnes uden en server. */
 const APP_URL = location.origin + location.pathname;
 const b64url = (bytes) => { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
 const unb64url = (str) => { const b = atob(str.replace(/-/g, "+").replace(/_/g, "/")); const out = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) out[i] = b.charCodeAt(i); return out; };
 async function encodeRecipe(r) {
-  const data = { t: r.title, d: r.description || "", s: r.servings, u: r.servingsUnit, tm: r.time || "", c: r.category || "", src: r.source || "", img: r.image || "",
+  const data = { t: r.title, d: r.description || "", s: r.servings, u: r.servingsUnit, tm: r.time || "", c: r.category || "", src: r.source || "", img: /^https?:/.test(r.image || "") ? r.image : "",
     i: (r.ingredients || []).map((x) => (x.section ? [x.section] : [x.amount, x.amountMax, x.unit, x.name])), st: r.steps || [], n: r.notes || "" };
   let bytes = new TextEncoder().encode(JSON.stringify(data)), tag = "j";
   if (window.CompressionStream) {
@@ -1382,6 +1642,17 @@ function renderEdit(id) {
   $("#main").innerHTML = `
     <form class="stack" id="f" novalidate>
       ${isDraft ? `<p class="note">Opskriften er sat ind i det faste format. Ret det, der ikke passer, og tryk Gem.</p>` : ""}
+      <div class="field">
+        <span class="flabel">Billede</span>
+        <div class="photo" id="photo">
+          ${showImage(r.image) ? `<img src="${esc(r.image)}" alt="Billede af retten" referrerpolicy="no-referrer">` : `<span class="ph">${ICON.camera}<span>Intet billede endnu</span></span>`}
+        </div>
+        <div class="row">
+          <label class="btn" for="imgin">${ICON.camera} <span id="imglbl">${r.image ? "Skift billede" : "Tag eller vælg billede"}</span></label>
+          <input id="imgin" type="file" accept="image/*" hidden>
+          <button type="button" class="btn ghost danger" id="imgrm" ${r.image ? "" : "hidden"}>Fjern billede</button>
+        </div>
+      </div>
       <div class="field"><label for="t">Titel</label><input class="input" id="t" required value="${esc(r.title)}" placeholder="Fx Mormors frikadeller"></div>
       <div class="field"><label for="d">Kort beskrivelse</label><input class="input" id="d" value="${esc(r.description)}" placeholder="Valgfri"></div>
       <div class="grid2">
@@ -1423,6 +1694,18 @@ function renderEdit(id) {
     $("#ctg").querySelectorAll("[data-c]").forEach((x) => { const on = x.dataset.c === cat; x.setAttribute("aria-pressed", on); x.setAttribute("aria-checked", on); });
   }));
   bindCatChips();
+  let image = r.image || "";
+  const drawPhoto = () => {
+    $("#photo").innerHTML = showImage(image) ? `<img src="${esc(image)}" alt="Billede af retten" referrerpolicy="no-referrer">` : `<span class="ph">${ICON.camera}<span>Intet billede endnu</span></span>`;
+    $("#imgrm").hidden = !image; $("#imglbl").textContent = image ? "Skift billede" : "Tag eller vælg billede";
+  };
+  $("#imgin").onchange = async (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    $("#photo").innerHTML = `<span class="ph"><span class="spin" aria-hidden="true"></span><span>Gør billedet klar…</span></span>`;
+    try { image = await shrinkImage(f); } catch { toast("Billedet kunne ikke læses. Prøv et andet."); }
+    e.target.value = ""; drawPhoto();
+  };
+  $("#imgrm").onclick = () => { image = ""; drawPhoto(); };
   $("#newcat").onclick = () => { $("#newcatrow").hidden = false; $("#ncn").focus(); };
   const doAdd = async () => {
     const n = await addCategory($("#ncn").value);
@@ -1450,7 +1733,7 @@ function renderEdit(id) {
       title, description: $("#d").value.trim(),
       servings: Math.max(1, Math.round(Number($("#sv").value) || 4)),
       servingsUnit: $("#su").value.trim() || "personer",
-      time: $("#tm").value.trim(), category: cat, image: (existing && existing.image) || r.image || "",
+      time: $("#tm").value.trim(), category: cat, image,
       source: src, ingredients, steps: parseSteps($("#st").value), notes: $("#nt").value.trim()
     };
     $("#save").disabled = true;
@@ -1812,6 +2095,8 @@ function renderImport() {
 }
 
 /* ---------- Start ---------- */
+if (!Array.isArray(S.offerPrefs.stores)) S.offerPrefs.stores = DEFAULT_STORES.slice();
+pruneOfferCache();
 /* Invitation til fælles kogebog: ?kogebog=… */
 try {
   const inv = new URLSearchParams(location.search).get("kogebog");
